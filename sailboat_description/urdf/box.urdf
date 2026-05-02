@@ -1,0 +1,43 @@
+<?xml version='1.0'?>
+
+<robot name="box" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- STEP 1 - Robot footprint -->
+  <link name="base_footprint"></link>
+
+  <!-- STEP 2 - Robot chassis = base_link -->
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="base_footprint"/>
+    <child link="base_link" />
+  </joint>
+
+  <link name='base_link'>
+    <pose>0 0 0.1 0 0 0</pose>
+
+    <inertial>
+      <mass value="15.0"/>
+      <origin xyz="0.0 0 0" rpy=" 0 0 0"/>
+      <inertia
+          ixx="0.0625" ixy="0" ixz="0"
+          iyy="0.2125" iyz="0"
+          izz="0.25"
+      />
+    </inertial>
+
+    <collision name='collision'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/> 
+      <geometry>
+        <box size=".4 .2 .1"/>
+      </geometry>
+    </collision>
+
+    <visual name='base_link_visual'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size=".4 .2 .1"/>
+      </geometry>
+    </visual>
+  </link>
+
+</robot>
