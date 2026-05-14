@@ -7,8 +7,21 @@
 
     <link name="base_link">
 
+      <gravity>true</gravity>
+      <kinematic>false</kinematic>
+
+      <pose>0 0 0.0 0 0 0</pose>
+
       <inertial>
-        <mass>10.0</mass>
+
+        <mass>1000.0</mass>
+
+        <inertia>
+          <ixx>8.0</ixx>
+          <iyy>8.0</iyy>
+          <izz>8.0</izz>
+        </inertia>
+
       </inertial>
 
       <collision name="collision">
@@ -28,6 +41,11 @@
             <size>1 1 1</size>
           </box>
         </geometry>
+
+        <material>
+          <ambient>0.8 0.1 0.1 1</ambient>
+          <diffuse>0.8 0.1 0.1 1</diffuse>
+        </material>
 
       </visual>
 
