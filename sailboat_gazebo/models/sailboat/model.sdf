@@ -102,7 +102,7 @@
       <!-- No collision -->
 
       <visual name="boom_visual">
-        <pose>0.165 0 0.2 0 1.5708 0</pose>
+        <pose>0.18 0 0.2 0 1.5708 0</pose>
         <geometry>
           <cylinder>
             <radius>0.01</radius>
@@ -117,6 +117,85 @@
     </link>
 
     <!-- ===================================================== -->
+    <!-- KEEL FIN                                               -->
+    <!-- ===================================================== -->
+
+    <link name="keel_link">
+      <pose>0 0 -0.06 0 0 0</pose>
+      <inertial>
+        <mass>0.2</mass>
+        <inertia>
+          <ixx>0.002</ixx>
+          <iyy>0.002</iyy>
+          <izz>0.001</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="keel_collision">
+        <pose>0 0 -0.12 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.08 0.01 0.25</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="keel_visual">
+        <pose>0 0 -0.12 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.08 0.01 0.25</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.2 0.2 0.2 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- ===================================================== -->
+    <!-- BULB                                                   -->
+    <!-- ===================================================== -->
+
+    <link name="bulb_link">
+      <pose>0 0 -0.31 0 1.5708 0</pose>
+      <inertial>
+        <mass>4.0</mass>
+        <inertia>
+          <ixx>0.01</ixx>
+          <iyy>0.01</iyy>
+          <izz>0.01</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="bulb_collision">
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>0.12</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="bulb_visual">
+        <geometry>
+          <cylinder>
+            <radius>0.04</radius>
+            <length>0.18</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.1 0.1 0.1 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- ===================================================== -->
     <!-- JOINTS                                                -->
     <!-- ===================================================== -->
 
@@ -126,22 +205,36 @@
       <child>mast_link</child>
     </joint>
 
-    <!-- Boom -->
+    <!-- Baum -->
     <joint name="boom_joint" type="revolute">
       <parent>mast_link</parent>
       <child>boom_link</child>
-      <pose>0 0 -0.36 0 0 0</pose>
+      <pose>-0.06 0 -0.36 0 0 0</pose>
       <axis>
         <xyz>0 0 1</xyz>
         <limit>
           <lower>-1.57</lower>
           <upper>1.57</upper>
+          <effort>1000</effort>
+          <velocity>2.0</velocity>
         </limit>
         <dynamics>
           <damping>0.2</damping>
           <friction>0.05</friction>
         </dynamics>
       </axis>
+    </joint>
+
+    <!-- Keel -->
+    <joint name="keel_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>keel_link</child>
+    </joint>
+
+    <!-- Bulb -->
+    <joint name="bulb_joint" type="fixed">
+      <parent>keel_link</parent>
+      <child>bulb_link</child>
     </joint>
 
     <!-- ===================================================== -->
@@ -170,12 +263,47 @@
         </geometry>
       </buoyancy>
 
+      <buoyancy name="keel_bouyancy">
+        <link_name>keel_link</link_name>
+        <pose>0 0 -0.12 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.08 0.01 0.25</size>
+          </box>
+        </geometry>
+      </buoyancy>
+
+      <buoyancy name="bulb_buoyancy">
+        <link_name>bulb_link</link_name>
+        <pose>0 0 -0.31 0 1.5708 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>0.12</length>
+          </cylinder>
+        </geometry>
+      </buoyancy>
+      
+
       <!-- =================================================== -->
       <!-- WAVES                                               -->
       <!-- =================================================== -->
       <wavefield>
         <topic>/vrx/wavefield/parameters</topic>
       </wavefield>
+    </plugin>
+
+    <plugin
+        filename="gz-sim-joint-controller-system"
+        name="gz::sim::systems::JointController">
+      <joint_name>boom_joint</joint_name>
+    </plugin>
+
+    <plugin
+        filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher">
+      <joint_name>boom_joint</joint_name>
+
     </plugin>
 
   </model>

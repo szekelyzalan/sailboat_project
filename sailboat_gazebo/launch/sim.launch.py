@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess, SetEnvironmentVariable
 from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import Node
 import os
 
 
@@ -43,7 +44,19 @@ def generate_launch_description():
         output='screen'
     )
 
+    # ROS <-> Gazebo bridge
+    bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+            '/model/sailboat/joint_state@sensor_msgs/msg/JointState[gz.msgs.Model',
+        ],
+        output='screen'
+    )
+
     return LaunchDescription([
         set_resource_path,
         gazebo,
+        bridge
     ])
