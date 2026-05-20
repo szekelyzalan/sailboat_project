@@ -1,24 +1,49 @@
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
+from launch.actions import ExecuteProcess, SetEnvironmentVariable
 from ament_index_python.packages import get_package_share_directory
 import os
 
 
 def generate_launch_description():
-
-    pkg_dir = get_package_share_directory('sailboat_gazebo')
-
+    sailboat_gazebo_dir = get_package_share_directory('sailboat_gazebo')
+    vrx_gz_dir = get_package_share_directory('vrx_gz')
     world = os.path.join(
-        pkg_dir,
+        sailboat_gazebo_dir,
         'worlds',
         'minimal_ocean.sdf'
     )
 
-    gz_sim = ExecuteProcess(
-        cmd=['gz', 'sim', world],
+    resource_paths = [
+        # Own sailboat models
+        os.path.join(sailboat_gazebo_dir,'models'),
+
+        # VRX maritime assets
+        # (coast_waves, buoys, etc.)
+        os.path.join(vrx_gz_dir,'models'),
+
+        # Default Gazebo / ROS assets
+        '/opt/ros/jazzy/share',
+    ]
+
+    combined_resources = ':'.join(resource_paths)
+
+    set_resource_path = SetEnvironmentVariable(
+        name='GZ_SIM_RESOURCE_PATH',
+        value=combined_resources
+    )
+
+    # GAZEBO SIMULATION
+    gazebo = ExecuteProcess(
+        cmd=[
+            'gz',
+            'sim',
+            '-v', '4',
+            world
+        ],
         output='screen'
     )
 
     return LaunchDescription([
-        gz_sim
+        set_resource_path,
+        gazebo,
     ])

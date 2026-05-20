@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+
+<sdf version="1.9">
+  <model name="sailboat">
+
+    <static>false</static>
+
+    <!-- ===================================================== -->
+    <!-- BASE LINK / HULL                                      -->
+    <!-- ===================================================== -->
+
+    <link name="base_link">
+      <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>1.8</mass>
+        <inertia>
+          <ixx>0.03</ixx>
+          <iyy>0.18</iyy>
+          <izz>0.20</izz>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+        </inertia>
+      </inertial>
+
+      <!-- Collision -->
+      <collision name="hull_collision">
+        <geometry>
+          <box>
+            <size>0.8 0.15 0.12</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- Visual -->
+      <visual name="hull_visual">
+        <geometry>
+          <box>
+            <size>0.8 0.15 0.12</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.2 0.2 0.8 1</ambient>
+          <diffuse>0.2 0.2 0.8 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- ===================================================== -->
+    <!-- MAST                                                  -->
+    <!-- ===================================================== -->
+
+    <link name="mast_link">
+      <pose>-0.07 0 0.56 0 0 0</pose>
+      <inertial>
+        <mass>0.2</mass>
+        <inertia>
+          <ixx>0.01</ixx>
+          <iyy>0.01</iyy>
+          <izz>0.001</izz>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+        </inertia>
+      </inertial>
+
+      <!-- No collision for stability -->
+
+      <visual name="mast_visual">
+        <geometry>
+          <cylinder>
+            <radius>0.015</radius>
+            <length>1.0</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.7 0.7 0.7 1</ambient>
+          <diffuse>0.7 0.7 0.7 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- ===================================================== -->
+    <!-- BOOM                                                  -->
+    <!-- ===================================================== -->
+
+    <link name="boom_link">
+      <!-- Boom center -->
+      <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>0.1</mass>
+        <inertia>
+          <ixx>0.003</ixx>
+          <iyy>0.01</iyy>
+          <izz>0.01</izz>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+        </inertia>
+      </inertial>
+
+      <!-- No collision -->
+
+      <visual name="boom_visual">
+        <pose>0.165 0 0.2 0 1.5708 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.01</radius>
+            <length>0.47</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.6 0.3 0.1 1</ambient>
+          <diffuse>0.6 0.3 0.1 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- ===================================================== -->
+    <!-- JOINTS                                                -->
+    <!-- ===================================================== -->
+
+    <!-- Mast fixed -->
+    <joint name="mast_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>mast_link</child>
+    </joint>
+
+    <!-- Boom -->
+    <joint name="boom_joint" type="revolute">
+      <parent>mast_link</parent>
+      <child>boom_link</child>
+      <pose>0 0 -0.36 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1.57</lower>
+          <upper>1.57</upper>
+        </limit>
+        <dynamics>
+          <damping>0.2</damping>
+          <friction>0.05</friction>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <!-- ===================================================== -->
+    <!-- BUOYANCY / WATER PHYSICS                              -->
+    <!-- ===================================================== -->
+
+    <plugin
+        name="vrx::PolyhedraBuoyancyDrag"
+        filename="libPolyhedraBuoyancyDrag.so">
+      <!-- Water properties -->
+      <fluid_density>1000</fluid_density>
+      <fluid_level>0.0</fluid_level>
+      <!-- Drag -->
+      <linear_drag>15.0</linear_drag>
+      <angular_drag>4.0</angular_drag>
+      <!-- =================================================== -->
+      <!-- HULL BUOYANCY                                       -->
+      <!-- =================================================== -->
+      <buoyancy name="hull_buoyancy">
+        <link_name>base_link</link_name>
+        <pose>0 0 -0.06 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.8 0.15 0.12</size>
+          </box>
+        </geometry>
+      </buoyancy>
+
+      <!-- =================================================== -->
+      <!-- WAVES                                               -->
+      <!-- =================================================== -->
+      <wavefield>
+        <topic>/vrx/wavefield/parameters</topic>
+      </wavefield>
+    </plugin>
+
+  </model>
+</sdf>  

@@ -158,34 +158,6 @@
         <iterations>true</iterations>
       </plugin>
 
-      <!-- Insert simple shapes -->
-      <!-- <plugin filename="Shapes" name="Shapes">
-        <gz-gui>
-          <property key="resizable" type="bool">false</property>
-          <property key="x" type="double">0</property>
-          <property key="y" type="double">0</property>
-          <property key="width" type="double">250</property>
-          <property key="height" type="double">50</property>
-          <property key="state" type="string">floating</property>
-          <property key="showTitleBar" type="bool">false</property>
-          <property key="cardBackground" type="string">#666666</property>
-        </gz-gui>
-      </plugin> -->
-
-      <!-- Insert lights -->
-      <!-- <plugin filename="Lights" name="Lights">
-        <gz-gui>
-          <property key="resizable" type="bool">false</property>
-          <property key="x" type="double">250</property>
-          <property key="y" type="double">0</property>
-          <property key="width" type="double">150</property>
-          <property key="height" type="double">50</property>
-          <property key="state" type="string">floating</property>
-          <property key="showTitleBar" type="bool">false</property>
-          <property key="cardBackground" type="string">#666666</property>
-        </gz-gui>
-      </plugin> -->
-
       <!-- Translate / rotate -->
       <plugin filename="TransformControl" name="Transform control">
         <gz-gui>
@@ -202,20 +174,6 @@
         <!-- disable legacy features used to connect this plugin to GzScene3D -->
         <legacy>false</legacy>
       </plugin>
-
-      <!-- Screenshot -->
-      <!-- <plugin filename="Screenshot" name="Screenshot">
-        <gz-gui>
-          <property key="resizable" type="bool">false</property>
-          <property key="x" type="double">250</property>
-          <property key="y" type="double">50</property>
-          <property key="width" type="double">50</property>
-          <property key="height" type="double">50</property>
-          <property key="state" type="string">floating</property>
-          <property key="showTitleBar" type="bool">false</property>
-          <property key="cardBackground" type="string">#777777</property>
-        </gz-gui>
-      </plugin> -->
 
       <!-- Video recorder -->
       <!-- <plugin filename="VideoRecorder" name="VideoRecorder">
@@ -253,16 +211,6 @@
           <property type="string" key="state">docked_collapsed</property>
         </gz-gui>
       </plugin>
-
-      <!-- View angle -->
-      <!-- <plugin filename="ViewAngle" name="View angle">
-        <gz-gui>
-          <property type="string" key="state">docked_collapsed</property>
-        </gz-gui> -->
-
-        <!-- disable legacy features used to connect this plugin to GzScene3D -->
-        <!-- <legacy>false</legacy>
-      </plugin> -->
 
     </gui>
 
@@ -341,15 +289,15 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <!-- <include>
-      <pose>0 0 0.2 0 0 0 </pose>
-      <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/sydney_regatta</uri>
-    </include> -->
-
     <include>
       <name>Coast Waves</name>
       <pose>0 0 0 0 0 0</pose>
       <uri>coast_waves</uri>
+    </include>
+
+    <include>
+      <uri>model://sailboat</uri>
+      <pose>-520 191 0 0 0 0</pose>
     </include>
 
     <include>
@@ -511,72 +459,6 @@
         </wavefield>
       </plugin>
     </include>
-
-    <!-- The posts for securing the WAM-V -->
-    <!-- <include>
-      <name>post_0</name>
-      <pose>-535.916809 154.362869 0.675884 -0.17182 0.030464 -0.005286</pose>
-      <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/post</uri>
-    </include>
-    <include>
-      <name>post_1</name>
-      <pose>-527.48999 153.854782 0.425844 -0.1365 0  0</pose>
-      <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/post</uri>
-    </include>
-    <include>
-      <name>post_2</name>
-      <pose>-544.832825 156.671951 0.499025 -0.162625 0 0 </pose>
-      <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/post</uri>
-    </include> -->
-
-    <!-- Antenna for communication with the WAM-V -->
-    <!-- <include>
-      <pose>-531.063721 147.668579 1.59471 -0.068142 0 -0.1</pose>
-      <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/antenna</uri>
-    </include> -->
-
-    <!-- ground station tents -->
-    <!-- <include>
-      <name>ground_station_0</name>
-      <pose>-540.796448 146.493744 1.671421 -0.00834 0.01824 1.301726</pose>
-      <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/ground_station</uri>
-    </include>
-    <include>
-      <name>ground_station_1</name>
-      <pose>-537.622681 145.827896 1.681931 -0.00603 0.018667 1.301571</pose>
-      <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/ground_station</uri>
-    </include>
-    <include>
-      <name>ground_station_2</name>
-      <pose>-534.550537 144.910400 1.720474 -0.004994 0.020798 1.301492</pose>
-      <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/ground_station</uri>
-    </include> -->
-
-    <!-- The projectile for the ball shooter -->
-    <!-- <include>
-      <name>blue_projectile</name>
-      <pose>-545 60 0.03 0 0 0</pose>
-      <uri>blue_projectile</uri>
-      <plugin name="vrx::PolyhedraBuoyancyDrag"
-              filename="libPolyhedraBuoyancyDrag.so">
-        <fluid_density>1000</fluid_density>
-        <fluid_level>0.0</fluid_level>
-        <linear_drag>25.0</linear_drag>
-        <angular_drag>2.0</angular_drag>
-        <buoyancy name="collision_outer">
-          <link_name>link</link_name>
-          <pose>0 0 -0.02 0 0 0</pose>
-          <geometry>
-            <sphere>
-              <radius>0.0285</radius>
-            </sphere>
-          </geometry>
-        </buoyancy>
-        <wavefield>
-          <topic>/vrx/wavefield/parameters</topic>
-        </wavefield>
-      </plugin>
-    </include> -->
 
     <!-- Load the plugin for the wind --> 
     <plugin
