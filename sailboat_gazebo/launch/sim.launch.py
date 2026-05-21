@@ -50,7 +50,8 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
-            '/model/sailboat/joint_state@sensor_msgs/msg/JointState[gz.msgs.Model',
+            '/baum_pos@std_msgs/msg/Float64@gz.msgs.Double',
+            '/rudder_pos@std_msgs/msg/Float64@gz.msgs.Double',
         ],
         output='screen'
     )

@@ -81,11 +81,11 @@
     </link>
 
     <!-- ===================================================== -->
-    <!-- BOOM                                                  -->
+    <!-- BAUM                                                  -->
     <!-- ===================================================== -->
 
-    <link name="boom_link">
-      <!-- Boom center -->
+    <link name="baum_link">
+      <!-- Baum center -->
       <pose>0 0 0 0 0 0</pose>
       <inertial>
         <mass>0.1</mass>
@@ -101,7 +101,7 @@
 
       <!-- No collision -->
 
-      <visual name="boom_visual">
+      <visual name="baum_visual">
         <pose>-0.15 0 0.2 0 1.5708 0</pose>
         <geometry>
           <cylinder>
@@ -297,9 +297,9 @@
     </joint>
 
     <!-- Baum -->
-    <joint name="boom_joint" type="revolute">
+    <joint name="baum_joint" type="revolute">
       <parent>mast_link</parent>
-      <child>boom_link</child>
+      <child>baum_link</child>
       <pose>0.09 0 -0.36 0 0 0</pose>
       <axis>
         <xyz>0 0 1</xyz>
@@ -316,9 +316,9 @@
       </axis>
     </joint>
 
-    <!-- Sail fixed to boom -->
+    <!-- Sail fixed to baum -->
     <joint name="sail_joint" type="fixed">
-      <parent>boom_link</parent>
+      <parent>baum_link</parent>
       <child>sail_link</child>
     </joint>
 
@@ -420,23 +420,48 @@
       </wavefield>
     </plugin>
 
-    <plugin
+      <!-- =================================================== -->
+      <!-- CONTROLLER PLUGINS                                  -->
+      <!-- =================================================== -->
+
+    <!-- Velocity control -->
+    <!-- <plugin
         filename="gz-sim-joint-controller-system"
-        name="gz::sim::systems::JointController">
-      <joint_name>boom_joint</joint_name>
+        name="baum_velocity_controller">
+      <joint_name>baum_joint</joint_name>
+      <topic>/baum_cmd</topic>
     </plugin>
 
     <plugin
         filename="gz-sim-joint-controller-system"
-        name="gz::sim::systems::JointController">
+        name="rudder_velocity_controller">
       <joint_name>rudder_joint</joint_name>
-    </plugin>
+      <topic>/rudder_cmd</topic>
+    </plugin> -->
 
     <plugin
         filename="gz-sim-joint-state-publisher-system"
         name="gz::sim::systems::JointStatePublisher">
-      <joint_name>boom_joint</joint_name>
+      <topic>/model/sailboat/joint_state</topic>
+      <joint_name>baum_joint</joint_name>
       <joint_name>rudder_joint</joint_name>
+    </plugin>
+
+    <!-- Position control -->
+    <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+      <joint_name>baum_joint</joint_name>
+      <topic>/baum_pos</topic>
+      <p_gain>8.0</p_gain>
+    </plugin>
+
+    <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+      <joint_name>rudder_joint</joint_name>
+      <topic>/rudder_pos</topic>
+      <p_gain>10.0</p_gain>
     </plugin>
 
   </model>
