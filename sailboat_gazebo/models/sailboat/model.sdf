@@ -51,7 +51,7 @@
     <!-- ===================================================== -->
 
     <link name="mast_link">
-      <pose>-0.07 0 0.56 0 0 0</pose>
+      <pose>0.1 0 0.56 0 0 0</pose>
       <inertial>
         <mass>0.2</mass>
         <inertia>
@@ -102,7 +102,7 @@
       <!-- No collision -->
 
       <visual name="boom_visual">
-        <pose>0.18 0 0.2 0 1.5708 0</pose>
+        <pose>-0.15 0 0.2 0 1.5708 0</pose>
         <geometry>
           <cylinder>
             <radius>0.01</radius>
@@ -112,6 +112,54 @@
         <material>
           <ambient>0.6 0.3 0.1 1</ambient>
           <diffuse>0.6 0.3 0.1 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- ===================================================== -->
+    <!-- SAIL                                                   -->
+    <!-- ===================================================== -->
+
+    <link name="sail_link">
+      <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>0.001</ixx>
+          <iyy>0.001</iyy>
+          <izz>0.001</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <!-- Thin collision -->
+      <collision name="sail_collision">
+        <pose>-0.15 0 0.6 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.47 0.01 0.80</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <collide_without_contact>true</collide_without_contact>
+          </contact>
+        </surface>
+      </collision>
+
+      <!-- Visual -->
+      <visual name="sail_visual">
+        <pose>-0.15 0 0.6 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.47 0.005 0.80</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.95 0.95 0.95 1</ambient>
+          <diffuse>0.95 0.95 0.95 1</diffuse>
         </material>
       </visual>
     </link>
@@ -196,6 +244,49 @@
     </link>
 
     <!-- ===================================================== -->
+    <!-- RUDDER                                                 -->
+    <!-- ===================================================== -->
+
+    <link name="rudder_link">
+      <pose>-0.43 0 -0.02 0 0 0</pose>
+      <inertial>
+        <mass>0.09</mass>
+        <inertia>
+          <ixx>0.001</ixx>
+          <iyy>0.001</iyy>
+          <izz>0.001</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <!-- Collision -->
+      <collision name="rudder_collision">
+        <pose>0 0 -0.08 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06 0.01 0.16</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- Visual -->
+      <visual name="rudder_visual">
+        <pose>0 0 -0.08 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06 0.01 0.16</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.1 0.1 0.1 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- ===================================================== -->
     <!-- JOINTS                                                -->
     <!-- ===================================================== -->
 
@@ -209,7 +300,7 @@
     <joint name="boom_joint" type="revolute">
       <parent>mast_link</parent>
       <child>boom_link</child>
-      <pose>-0.06 0 -0.36 0 0 0</pose>
+      <pose>0.09 0 -0.36 0 0 0</pose>
       <axis>
         <xyz>0 0 1</xyz>
         <limit>
@@ -225,6 +316,12 @@
       </axis>
     </joint>
 
+    <!-- Sail fixed to boom -->
+    <joint name="sail_joint" type="fixed">
+      <parent>boom_link</parent>
+      <child>sail_link</child>
+    </joint>
+
     <!-- Keel -->
     <joint name="keel_joint" type="fixed">
       <parent>base_link</parent>
@@ -235,6 +332,26 @@
     <joint name="bulb_joint" type="fixed">
       <parent>keel_link</parent>
       <child>bulb_link</child>
+    </joint>
+
+    <!-- Rudder -->
+    <joint name="rudder_joint" type="revolute">
+      <pose>0.03 0 -0.02 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>rudder_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-0.6</lower>
+          <upper>0.6</upper>
+          <effort>1000</effort>
+          <velocity>2.0</velocity>
+        </limit>
+        <dynamics>
+          <damping>0.2</damping>
+          <friction>0.05</friction>
+        </dynamics>
+      </axis>
     </joint>
 
     <!-- ===================================================== -->
@@ -283,6 +400,16 @@
           </cylinder>
         </geometry>
       </buoyancy>
+
+      <buoyancy name="rudder_buoyancy">
+        <link_name>rudder_link</link_name>
+        <pose>0 0 -0.08 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06 0.01 0.16</size>
+          </box>
+        </geometry>
+      </buoyancy>
       
 
       <!-- =================================================== -->
@@ -300,10 +427,16 @@
     </plugin>
 
     <plugin
+        filename="gz-sim-joint-controller-system"
+        name="gz::sim::systems::JointController">
+      <joint_name>rudder_joint</joint_name>
+    </plugin>
+
+    <plugin
         filename="gz-sim-joint-state-publisher-system"
         name="gz::sim::systems::JointStatePublisher">
       <joint_name>boom_joint</joint_name>
-
+      <joint_name>rudder_joint</joint_name>
     </plugin>
 
   </model>
