@@ -52,6 +52,7 @@ def generate_launch_description():
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             '/baum_pos@std_msgs/msg/Float64@gz.msgs.Double',
             '/rudder_pos@std_msgs/msg/Float64@gz.msgs.Double',
+            '/boat/gps/data@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat',
         ],
         output='screen'
     )
