@@ -160,17 +160,32 @@ class BoatMotionNode(Node):
         """
         Updates the mostion of the boat.
         """
-        # RELATIVE WIND
-        relative_wind = (
-            self.wind_direction -
-            self.yaw -
-            self.sail_angle
-        )
+        # TRUE WIND VECTOR
+        wind_x = self.wind_speed * math.cos(self.wind_direction)
+        wind_y = self.wind_speed * math.sin(self.wind_direction)
+
+        # BOAT VELOCITY VECTOR
+        boat_vx = self.forward_velocity * math.cos(self.yaw)
+        boat_vy = self.forward_velocity * math.sin(self.yaw)
+
+        # APPARENT WIND VECTOR
+        app_wind_x = wind_x - boat_vx
+        app_wind_y = wind_y - boat_vy
+
+        # APPARENT WIND MAGNITUDE
+        app_wind_speed = math.hypot(app_wind_x, app_wind_y)
+
+        # APPARENT WIND DIRECTION
+        app_wind_direction = math.atan2(app_wind_y, app_wind_x)
+
+        # RELATIVE WIND TO SAIL
+        relative_wind = app_wind_direction - self.yaw - self.sail_angle
 
         # SAIL EFFICIENCY
         efficiency = abs(math.cos(relative_wind))
         self.get_logger().info(
-            f'wind={self.wind_speed:.2f}, '
+            f'true_wind={self.wind_speed:.2f}, '
+            f'app_wind={app_wind_speed:.2f}, '
             f'eff={efficiency:.2f}, '
             f'vel={self.forward_velocity:.2f}'
         )
