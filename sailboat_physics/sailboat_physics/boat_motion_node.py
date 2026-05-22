@@ -4,6 +4,8 @@ import math
 import subprocess
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import Float32
+from std_msgs.msg import Float64
 
 
 class BoatMotionNode(Node):
@@ -20,12 +22,49 @@ class BoatMotionNode(Node):
         # INITIALIZE FROM GAZEBO
         self.initialize_pose()
 
+        # WIND STATE
+        self.wind_speed = 0.0
+        self.wind_direction = 0.0
+
+        # CONTROL SURFACES
+        self.sail_angle = 0.0
+        self.rudder_angle = 0.0
+
         # MOTION PARAMETERS
-        self.forward_velocity = 1.0
+        self.forward_velocity = 0.0
         self.yaw_rate = 0.0
 
+        # SUBSRCIBERS
+        self.create_subscription(
+            Float32,
+            '/vrx/debug/wind/speed',
+            self.wind_speed_callback,
+            10
+        )
+
+        self.create_subscription(
+            Float32,
+            '/vrx/debug/wind/direction',
+            self.wind_direction_callback,
+            10
+        )
+
+        self.create_subscription(
+            Float64,
+            '/baum_pos',
+            self.sail_callback,
+            10
+        )
+
+        self.create_subscription(
+            Float64,
+            '/rudder_pos',
+            self.rudder_callback,
+            10
+        )
+
         # TIMER
-        self.dt = 0.05
+        self.dt = 0.2
         self.timer = self.create_timer(self.dt, self.update_motion)
         self.get_logger().info('Boat motion node started.')
 
@@ -101,25 +140,51 @@ class BoatMotionNode(Node):
         except Exception as e:
             self.get_logger().error(str(e))
 
+    # WIND CALLBACKS
+    def wind_speed_callback(self, msg):
+        self.wind_speed = msg.data
+
+    def wind_direction_callback(self, msg):
+        self.wind_direction = math.radians(msg.data)
+
+    # COPNTROL SURFACE CALLBACKS
+    def sail_callback(self, msg):
+        self.sail_angle = msg.data
+
+    def rudder_callback(self, msg):
+        self.rudder_angle = msg.data
+
     def update_motion(self):
         """
         Updates the mostion of the boat.
         """
-        # SIMPLE KINEMATIC MODEL
-        self.x += (
-            self.forward_velocity *
-            math.cos(self.yaw) *
-            self.dt
+        # RELATIVE WIND
+        relative_wind = (
+            self.wind_direction -
+            self.yaw -
+            self.sail_angle
         )
-        self.y += (
-            self.forward_velocity *
-            math.sin(self.yaw) *
-            self.dt
+
+        # SAIL EFFICIENCY
+        efficiency = abs(math.cos(relative_wind))
+        self.get_logger().info(
+            f'wind={self.wind_speed:.2f}, '
+            f'eff={efficiency:.2f}, '
+            f'vel={self.forward_velocity:.2f}'
         )
-        self.yaw += (
-            self.yaw_rate *
-            self.dt
-        )
+
+        # BOAT SPEED
+        sail_gain = 0.2
+        self.forward_velocity = self.wind_speed * efficiency * sail_gain
+
+        # RUDDER TURNING
+        rudder_gain = 0.5
+        self.yaw_rate = self.rudder_angle * rudder_gain * self.forward_velocity
+
+        # INTEGRATE MOTION
+        self.x += self.forward_velocity * math.cos(self.yaw) * self.dt
+        self.y += self.forward_velocity * math.sin(self.yaw) * self.dt
+        self.yaw += self.yaw_rate * self.dt
 
         # YAW -> QUATERNION
         qw = math.cos(self.yaw / 2.0)

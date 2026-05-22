@@ -54,6 +54,8 @@ def generate_launch_description():
             '/rudder_pos@std_msgs/msg/Float64@gz.msgs.Double',
             '/boat/gps/data@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat',
             '/world/lake_balaton/wrench@geometry_msgs/msg/Wrench@gz.msgs.Wrench',
+            '/vrx/debug/wind/speed@std_msgs/msg/Float32[gz.msgs.Float',
+            '/vrx/debug/wind/direction@std_msgs/msg/Float32[gz.msgs.Float',
         ],
         output='screen'
     )
