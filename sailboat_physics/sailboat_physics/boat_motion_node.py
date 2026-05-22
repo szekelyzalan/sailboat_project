@@ -33,6 +33,8 @@ class BoatMotionNode(Node):
         # MOTION PARAMETERS
         self.forward_velocity = 0.0
         self.yaw_rate = 0.0
+        self.target_velocity = 0.0
+        self.target_yaw_rate = 0.0
 
         # SUBSRCIBERS
         self.create_subscription(
@@ -175,11 +177,23 @@ class BoatMotionNode(Node):
 
         # BOAT SPEED
         sail_gain = 0.2
-        self.forward_velocity = self.wind_speed * efficiency * sail_gain
+        self.target_velocity = self.wind_speed * efficiency * sail_gain
 
         # RUDDER TURNING
         rudder_gain = 0.5
-        self.yaw_rate = self.rudder_angle * rudder_gain * self.forward_velocity
+        self.target_yaw_rate = self.rudder_angle * rudder_gain * self.forward_velocity
+
+        # SMOOTH VELOCITY DYNAMICS
+        velocity_gain = 0.8
+        velocity_error = self.target_velocity - self.forward_velocity
+        velocity_acceleration = velocity_error * velocity_gain
+        self.forward_velocity += velocity_acceleration * self.dt
+
+        # SMOOTH YAW DYNAMICS
+        yaw_gain = 2.0
+        yaw_error = self.target_yaw_rate - self.yaw_rate
+        yaw_acceleration = yaw_error * yaw_gain
+        self.yaw_rate += yaw_acceleration * self.dt
 
         # INTEGRATE MOTION
         self.x += self.forward_velocity * math.cos(self.yaw) * self.dt
