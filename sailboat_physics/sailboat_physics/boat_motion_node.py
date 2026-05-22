@@ -31,9 +31,9 @@ class BoatMotionNode(Node):
         self.rudder_angle = 0.0
 
         # MOTION PARAMETERS
-        self.forward_velocity = 0.0
+        self.vx = 0.0
+        self.vy = 0.0
         self.yaw_rate = 0.0
-        self.target_velocity = 0.0
         self.target_yaw_rate = 0.0
 
         # SUBSRCIBERS
@@ -158,51 +158,91 @@ class BoatMotionNode(Node):
 
     def update_motion(self):
         """
-        Updates the mostion of the boat.
+        Updates the motion of the sailboat.
         """
         # TRUE WIND VECTOR
         wind_x = self.wind_speed * math.cos(self.wind_direction)
         wind_y = self.wind_speed * math.sin(self.wind_direction)
 
         # BOAT VELOCITY VECTOR
-        boat_vx = self.forward_velocity * math.cos(self.yaw)
-        boat_vy = self.forward_velocity * math.sin(self.yaw)
+        boat_vx = self.vx
+        boat_vy = self.vy
 
         # APPARENT WIND VECTOR
         app_wind_x = wind_x - boat_vx
         app_wind_y = wind_y - boat_vy
 
-        # APPARENT WIND MAGNITUDE
+        # APPARENT WIND SPEED + DIRECTION
         app_wind_speed = math.hypot(app_wind_x, app_wind_y)
-
-        # APPARENT WIND DIRECTION
         app_wind_direction = math.atan2(app_wind_y, app_wind_x)
 
-        # RELATIVE WIND TO SAIL
-        relative_wind = app_wind_direction - self.yaw - self.sail_angle
+        # ANGLE OF ATTACK
+        angle_of_attack = app_wind_direction - self.yaw - self.sail_angle
 
-        # SAIL EFFICIENCY
-        efficiency = abs(math.cos(relative_wind))
-        self.get_logger().info(
-            f'true_wind={self.wind_speed:.2f}, '
-            f'app_wind={app_wind_speed:.2f}, '
-            f'eff={efficiency:.2f}, '
-            f'vel={self.forward_velocity:.2f}'
+        # normalize to [-pi, pi]
+        angle_of_attack = math.atan2(
+            math.sin(angle_of_attack),
+            math.cos(angle_of_attack)
         )
 
-        # BOAT SPEED
-        sail_gain = 0.2
-        self.target_velocity = self.wind_speed * efficiency * sail_gain
+        # LIFT / DRAG COEFFICIENTS
+        lift_coefficient = math.sin(2.0 * angle_of_attack)
+        drag_coefficient = 1.0 - math.cos(angle_of_attack)
+
+        # FORCE MAGNITUDES
+        lift_gain = 0.8
+        drag_gain = 0.3
+        lift_force = (app_wind_speed ** 2) * lift_coefficient * lift_gain
+
+        drag_force = (app_wind_speed ** 2) * drag_coefficient * drag_gain
+
+        # DRAG DIRECTION
+        drag_dir_x = math.cos(app_wind_direction)
+        drag_dir_y = math.sin(app_wind_direction)
+
+        # LIFT DIRECTION
+        lift_sign = 1.0
+        if angle_of_attack < 0.0:
+            lift_sign = -1.0
+        lift_direction = app_wind_direction + lift_sign * math.pi / 2.0
+        lift_dir_x = math.cos(lift_direction)
+        lift_dir_y = math.sin(lift_direction)
+
+        # TOTAL SAIL FORCE VECTOR
+        force_x = lift_force * lift_dir_x + drag_force * drag_dir_x
+        force_y = lift_force * lift_dir_y + drag_force * drag_dir_y
+
+        # FORCE -> ACCELERATION
+        boat_mass = 6.44
+        ax = force_x / boat_mass
+        ay = force_y / boat_mass
+
+        # INTEGRATE VELOCITY
+        self.vx += ax * self.dt
+        self.vy += ay * self.dt
+
+        # WATER DRAG
+        water_drag = 0.98
+        self.vx *= water_drag
+        self.vy *= water_drag
+
+        # FORWARD SPEED IN BODY FRAME
+        forward_speed = (
+            self.vx * math.cos(self.yaw) +
+            self.vy * math.sin(self.yaw)
+        )
+
+        # KEEL SIDEWAYS DAMPING
+        side_x = -math.sin(self.yaw)
+        side_y = math.cos(self.yaw)
+        side_velocity = self.vx * side_x + self.vy * side_y
+        keel_strength = 0.9
+        self.vx -= side_velocity * side_x * keel_strength * self.dt
+        self.vy -= side_velocity * side_y * keel_strength * self.dt
 
         # RUDDER TURNING
         rudder_gain = 0.5
-        self.target_yaw_rate = self.rudder_angle * rudder_gain * self.forward_velocity
-
-        # SMOOTH VELOCITY DYNAMICS
-        velocity_gain = 0.8
-        velocity_error = self.target_velocity - self.forward_velocity
-        velocity_acceleration = velocity_error * velocity_gain
-        self.forward_velocity += velocity_acceleration * self.dt
+        self.target_yaw_rate = self.rudder_angle * rudder_gain * forward_speed
 
         # SMOOTH YAW DYNAMICS
         yaw_gain = 2.0
@@ -210,28 +250,37 @@ class BoatMotionNode(Node):
         yaw_acceleration = yaw_error * yaw_gain
         self.yaw_rate += yaw_acceleration * self.dt
 
-        # INTEGRATE MOTION
-        self.x += self.forward_velocity * math.cos(self.yaw) * self.dt
-        self.y += self.forward_velocity * math.sin(self.yaw) * self.dt
+        # INTEGRATE POSITION
+        self.x += self.vx * self.dt
+        self.y += self.vy * self.dt
         self.yaw += self.yaw_rate * self.dt
 
         # YAW -> QUATERNION
         qw = math.cos(self.yaw / 2.0)
         qz = math.sin(self.yaw / 2.0)
 
+        # OPTIONAL DEBUG
+        # self.get_logger().info(
+        #     f'aws={app_wind_speed:.2f}, '
+        #     f'aoa={math.degrees(angle_of_attack):.1f}, '
+        #     f'vx={self.vx:.2f}, '
+        #     f'vy={self.vy:.2f}'
+        # )
+
         # GAZEBO REQUEST
         request = f'''
-name: "sailboat"
-position {{
-  x: {self.x}
-  y: {self.y}
-  z: {self.z}
-}}
-orientation {{
-  z: {qz}
-  w: {qw}
-}}
-'''
+    name: "sailboat"
+    position {{
+    x: {self.x}
+    y: {self.y}
+    z: {self.z}
+    }}
+    orientation {{
+    z: {qz}
+    w: {qw}
+    }}
+    '''
+
         # SEND TO GAZEBO
         try:
             subprocess.run(
