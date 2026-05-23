@@ -16,11 +16,11 @@ def generate_launch_description():
 
     resource_paths = [
         # Own sailboat models
-        os.path.join(sailboat_gazebo_dir,'models'),
+        os.path.join(sailboat_gazebo_dir, 'models'),
 
         # VRX maritime assets
         # (coast_waves, buoys, etc.)
-        os.path.join(vrx_gz_dir,'models'),
+        os.path.join(vrx_gz_dir, 'models'),
 
         # Default Gazebo / ROS assets
         '/opt/ros/jazzy/share',
@@ -31,6 +31,15 @@ def generate_launch_description():
     set_resource_path = SetEnvironmentVariable(
         name='GZ_SIM_RESOURCE_PATH',
         value=combined_resources
+    )
+
+    # GAZEBO SYSTEM PLUGIN PATH
+    plugin_path = os.path.expanduser('~/sailboat_ws/install/sailboat_gz_plugin/lib')
+    existing_plugin_path = os.environ.get('GZ_SIM_SYSTEM_PLUGIN_PATH', '')
+    combined_plugin_paths = existing_plugin_path + ':' + plugin_path
+    set_plugin_path = SetEnvironmentVariable(
+        name='GZ_SIM_SYSTEM_PLUGIN_PATH',
+        value=combined_plugin_paths
     )
 
     # GAZEBO SIMULATION
@@ -62,6 +71,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         set_resource_path,
+        set_plugin_path,
         gazebo,
         bridge
     ])
