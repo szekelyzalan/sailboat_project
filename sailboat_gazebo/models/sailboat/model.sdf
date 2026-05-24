@@ -14,9 +14,9 @@
       <inertial>
         <mass>1.8</mass>
         <inertia>
-          <ixx>0.03</ixx>
-          <iyy>0.18</iyy>
-          <izz>0.20</izz>
+          <ixx>0.003075</ixx>
+          <iyy>0.05453</iyy>
+          <izz>0.05521</izz>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
           <iyz>0.0</iyz>
@@ -55,9 +55,9 @@
       <inertial>
         <mass>0.2</mass>
         <inertia>
-          <ixx>0.01</ixx>
-          <iyy>0.01</iyy>
-          <izz>0.001</izz>
+          <ixx>0.016678</ixx>
+          <iyy>0.016678</iyy>
+          <izz>0.0000225</izz>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
           <iyz>0.0</iyz>
@@ -90,9 +90,9 @@
       <inertial>
         <mass>0.1</mass>
         <inertia>
-          <ixx>0.003</ixx>
-          <iyy>0.01</iyy>
-          <izz>0.01</izz>
+          <ixx>0.000005</ixx>
+          <iyy>0.0018433</iyy>
+          <izz>0.0018433</izz>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
           <iyz>0.0</iyz>
@@ -125,9 +125,9 @@
       <inertial>
         <mass>0.05</mass>
         <inertia>
-          <ixx>0.001</ixx>
-          <iyy>0.001</iyy>
-          <izz>0.001</izz>
+          <ixx>0.003587</ixx>
+          <iyy>0.003587</iyy>
+          <izz>0.003587</izz>
           <ixy>0</ixy>
           <ixz>0</ixz>
           <iyz>0</iyz>
@@ -173,9 +173,9 @@
       <inertial>
         <mass>0.2</mass>
         <inertia>
-          <ixx>0.002</ixx>
-          <iyy>0.002</iyy>
-          <izz>0.001</izz>
+          <ixx>0.0010433</ixx>
+          <iyy>0.0010433</iyy>
+          <izz>0.00010833</izz>
           <ixy>0</ixy>
           <ixz>0</ixz>
           <iyz>0</iyz>
@@ -212,9 +212,9 @@
       <inertial>
         <mass>4.0</mass>
         <inertia>
-          <ixx>0.01</ixx>
-          <iyy>0.01</iyy>
-          <izz>0.01</izz>
+          <ixx>0.0018</ixx>
+          <iyy>0.0057</iyy>
+          <izz>0.0057</izz>
           <ixy>0</ixy>
           <ixz>0</ixz>
           <iyz>0</iyz>
@@ -252,9 +252,9 @@
       <inertial>
         <mass>0.09</mass>
         <inertia>
-          <ixx>0.001</ixx>
-          <iyy>0.001</iyy>
-          <izz>0.001</izz>
+          <ixx>0.00019275</ixx>
+          <iyy>0.000219</iyy>
+          <izz>0.00002775</izz>
           <ixy>0</ixy>
           <ixz>0</ixz>
           <iyz>0</iyz>
@@ -392,8 +392,8 @@
       <fluid_density>1000</fluid_density>
       <fluid_level>0.0</fluid_level>
       <!-- Drag -->
-      <linear_drag>15.0</linear_drag>
-      <angular_drag>4.0</angular_drag>
+      <linear_drag>6.0</linear_drag>
+      <angular_drag>3.0</angular_drag>
       <!-- =================================================== -->
       <!-- HULL BUOYANCY                                       -->
       <!-- =================================================== -->
@@ -479,7 +479,7 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
       <joint_name>baum_joint</joint_name>
-      <topic>/baum_pos</topic>
+      <topic>/actual_baum_pos</topic>
       <p_gain>8.0</p_gain>
     </plugin>
 

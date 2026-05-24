@@ -16,11 +16,11 @@ def generate_launch_description():
 
     resource_paths = [
         # Own sailboat models
-        os.path.join(sailboat_gazebo_dir,'models'),
+        os.path.join(sailboat_gazebo_dir, 'models'),
 
         # VRX maritime assets
         # (coast_waves, buoys, etc.)
-        os.path.join(vrx_gz_dir,'models'),
+        os.path.join(vrx_gz_dir, 'models'),
 
         # Default Gazebo / ROS assets
         '/opt/ros/jazzy/share',
@@ -51,8 +51,11 @@ def generate_launch_description():
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             '/baum_pos@std_msgs/msg/Float64@gz.msgs.Double',
+            '/actual_baum_pos@std_msgs/msg/Float64@gz.msgs.Double',
             '/rudder_pos@std_msgs/msg/Float64@gz.msgs.Double',
             '/boat/gps/data@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat',
+            '/vrx/debug/wind/speed@std_msgs/msg/Float32[gz.msgs.Float',
+            '/vrx/debug/wind/direction@std_msgs/msg/Float32[gz.msgs.Float',
         ],
         output='screen'
     )

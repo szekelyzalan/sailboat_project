@@ -472,8 +472,8 @@
         <link_name>sailboat/base_link</link_name>
         <coeff_vector>1.0 1.0 0.2</coeff_vector>
       </wind_obj>
-      <wind_direction>240</wind_direction>
-      <wind_mean_velocity>40.0</wind_mean_velocity>
+      <wind_direction>40</wind_direction>
+      <wind_mean_velocity>4.0</wind_mean_velocity>
       <var_wind_gain_constants>0</var_wind_gain_constants>
       <var_wind_time_constants>2</var_wind_time_constants>
       <random_seed>10</random_seed>
