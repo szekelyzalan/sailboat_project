@@ -61,6 +61,11 @@ def compute_sail_force(
     lift_coefficient = math.sin(
         2.0 * angle_of_attack
     )
+    aoa_deg = abs(math.degrees(angle_of_attack))
+
+    if aoa_deg > 85.0:
+
+        lift_coefficient *= 0.05
 
     drag_coefficient = (
         1.0 -
@@ -87,8 +92,8 @@ def compute_sail_force(
     # DRAG DIRECTION
 
     drag_direction = Vector2(
-        math.cos(app_wind_direction),
-        math.sin(app_wind_direction)
+        -math.cos(app_wind_direction),
+        -math.sin(app_wind_direction)
     )
 
     # LIFT DIRECTION
@@ -119,12 +124,85 @@ def compute_sail_force(
 
 
 def apply_water_drag(
-    velocity
+    velocity,
+    yaw,
+    dt
 ):
 
-    water_drag = 0.98
+    # =====================================================
+    # LOCAL BOAT FRAME
+    # =====================================================
 
-    return velocity * water_drag
+    forward = Vector2(
+        math.cos(yaw),
+        math.sin(yaw)
+    )
+
+    sideways = Vector2(
+        -math.sin(yaw),
+        math.cos(yaw)
+    )
+
+    # =====================================================
+    # DECOMPOSE VELOCITY
+    # =====================================================
+
+    forward_speed = velocity.dot(forward)
+    sideways_speed = velocity.dot(sideways)
+
+    # =====================================================
+    # DRAG COEFFICIENTS
+    # =====================================================
+
+    forward_drag = 0.15
+
+    # VERY IMPORTANT:
+    # reverse motion heavily penalized
+
+    reverse_drag = 2.5
+
+    sideways_drag = 4.0
+
+    # =====================================================
+    # FORWARD DRAG
+    # =====================================================
+
+    if forward_speed >= 0.0:
+
+        forward_force = (
+            -forward_drag *
+            forward_speed *
+            abs(forward_speed)
+        )
+
+    else:
+
+        forward_force = (
+            reverse_drag *
+            forward_speed *
+            abs(forward_speed)
+        )
+
+    # =====================================================
+    # SIDEWAYS DRAG
+    # =====================================================
+
+    sideways_force = (
+        -sideways_drag *
+        sideways_speed *
+        abs(sideways_speed)
+    )
+
+    # =====================================================
+    # REBUILD FORCE VECTOR
+    # =====================================================
+
+    drag_force = (
+        forward * forward_force +
+        sideways * sideways_force
+    )
+
+    return velocity + drag_force * dt
 
 
 def apply_keel_damping(
@@ -142,7 +220,7 @@ def apply_keel_damping(
         side_direction
     )
 
-    keel_strength = 0.9
+    keel_strength = 1.4
 
     damping = (
         side_direction *

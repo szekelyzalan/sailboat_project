@@ -392,8 +392,8 @@
       <fluid_density>1000</fluid_density>
       <fluid_level>0.0</fluid_level>
       <!-- Drag -->
-      <linear_drag>15.0</linear_drag>
-      <angular_drag>4.0</angular_drag>
+      <linear_drag>6.0</linear_drag>
+      <angular_drag>3.0</angular_drag>
       <!-- =================================================== -->
       <!-- HULL BUOYANCY                                       -->
       <!-- =================================================== -->
@@ -479,7 +479,7 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
       <joint_name>baum_joint</joint_name>
-      <topic>/baum_pos</topic>
+      <topic>/actual_baum_pos</topic>
       <p_gain>8.0</p_gain>
     </plugin>
 
@@ -491,11 +491,10 @@
       <p_gain>10.0</p_gain>
     </plugin>
 
-    <plugin
+    <!-- <plugin
         filename="libForcePlugin.so"
         name="sailboat_gz_plugin::ForcePlugin">
-    </plugin>
-
+    </plugin> -->
 
   </model>
 </sdf>  

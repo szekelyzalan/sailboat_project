@@ -4,12 +4,17 @@
 
 #include <gz/sim/components/Pose.hh>
 #include <gz/sim/components/LinearVelocity.hh>
-#include <gz/sim/components/AngularVelocityCmd.hh>
 
 #include <gz/math/Vector3.hh>
 
+#include <rclcpp/rclcpp.hpp>
+
+#include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/float64.hpp>
+
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 
 using namespace sailboat_gz_plugin;
 
@@ -29,10 +34,7 @@ void ForcePlugin::Configure(
 
     if (!this->model.Valid(_ecm))
     {
-        std::cerr
-            << "Invalid model."
-            << std::endl;
-
+        std::cerr << "Invalid model." << std::endl;
         return;
     }
 
@@ -42,13 +44,9 @@ void ForcePlugin::Configure(
             "base_link"
         );
 
-    if (this->linkEntity ==
-        gz::sim::kNullEntity)
+    if (this->linkEntity == gz::sim::kNullEntity)
     {
-        std::cerr
-            << "Could not find base_link."
-            << std::endl;
-
+        std::cerr << "Could not find base_link." << std::endl;
         return;
     }
 
@@ -66,7 +64,9 @@ void ForcePlugin::Configure(
             "force_plugin_node"
         );
 
+    // =====================================================
     // WIND SPEED
+    // =====================================================
 
     this->windSpeedSub =
         this->rosNode->create_subscription
@@ -84,7 +84,9 @@ void ForcePlugin::Configure(
             }
         );
 
+    // =====================================================
     // WIND DIRECTION
+    // =====================================================
 
     this->windDirectionSub =
         this->rosNode->create_subscription
@@ -102,7 +104,9 @@ void ForcePlugin::Configure(
             }
         );
 
+    // =====================================================
     // SAIL
+    // =====================================================
 
     this->sailSub =
         this->rosNode->create_subscription
@@ -120,7 +124,9 @@ void ForcePlugin::Configure(
             }
         );
 
+    // =====================================================
     // RUDDER
+    // =====================================================
 
     this->rudderSub =
         this->rosNode->create_subscription
@@ -139,7 +145,7 @@ void ForcePlugin::Configure(
         );
 
     std::cout
-        << "ForcePlugin loaded."
+        << "Minimal Sailboat Plugin Loaded"
         << std::endl;
 }
 
@@ -155,12 +161,10 @@ void ForcePlugin::PreUpdate(
     }
 
     // =====================================================
-    // ROS SPIN
+    // ROS
     // =====================================================
 
-    rclcpp::spin_some(
-        this->rosNode
-    );
+    rclcpp::spin_some(this->rosNode);
 
     // =====================================================
     // LINK
@@ -172,7 +176,7 @@ void ForcePlugin::PreUpdate(
         );
 
     // =====================================================
-    // WORLD POSE
+    // POSE
     // =====================================================
 
     auto poseComp =
@@ -185,14 +189,13 @@ void ForcePlugin::PreUpdate(
         return;
     }
 
-    auto pose =
-        poseComp->Data();
+    auto pose = poseComp->Data();
 
     double yaw =
         pose.Rot().Yaw();
 
     // =====================================================
-    // WORLD VELOCITY
+    // VELOCITY
     // =====================================================
 
     auto velComp =
@@ -209,10 +212,48 @@ void ForcePlugin::PreUpdate(
         velComp->Data();
 
     // =====================================================
+    // BOAT AXES
+    // =====================================================
+
+    gz::math::Vector3d forwardDir(
+
+        std::cos(yaw),
+        std::sin(yaw),
+        0.0
+    );
+
+    gz::math::Vector3d rightDir(
+
+        -std::sin(yaw),
+        std::cos(yaw),
+        0.0
+    );
+
+    // =====================================================
+    // BOAT SPEEDS
+    // =====================================================
+
+    double forwardSpeed =
+
+        velocity.Dot(
+            forwardDir
+        );
+
+    double sideSpeed =
+
+        velocity.Dot(
+            rightDir
+        );
+
+    double boatSpeed =
+        velocity.Length();
+
+    // =====================================================
     // TRUE WIND
     // =====================================================
 
     double windRad =
+
         this->windDirection *
         M_PI / 180.0;
 
@@ -232,331 +273,198 @@ void ForcePlugin::PreUpdate(
     // =====================================================
 
     gz::math::Vector3d apparentWind =
+
         trueWind - velocity;
 
     double apparentWindSpeed =
         apparentWind.Length();
 
     double apparentWindDirection =
+
         std::atan2(
             apparentWind.Y(),
             apparentWind.X()
         );
 
     // =====================================================
-    // ANGLE OF ATTACK
+    // RELATIVE WIND
     // =====================================================
 
-    double angleOfAttack =
+    double relativeWind =
 
         apparentWindDirection -
-        yaw -
-        this->sailAngle;
+        yaw;
 
-    angleOfAttack =
+    relativeWind =
+
         std::atan2(
-            std::sin(angleOfAttack),
-            std::cos(angleOfAttack)
+            std::sin(relativeWind),
+            std::cos(relativeWind)
         );
 
-// =====================================================
-// PHYSICAL CONSTANTS
-// =====================================================
-
-double airDensity = 1.225;
-
-double sailArea = 0.376;
-
-// =====================================================
-// LIFT / DRAG COEFFICIENTS
-// =====================================================
-
-// simple symmetric sail model
-
-double liftCoefficient =
-    std::sin(
-        2.0 * angleOfAttack
-    );
-
-// always positive drag
-
-double dragCoefficient =
-    1.0 -
-    std::cos(angleOfAttack);
-
-// =====================================================
-// DYNAMIC PRESSURE
-// =====================================================
-
-double dynamicPressure =
-
-    0.5 *
-    airDensity *
-    apparentWindSpeed *
-    apparentWindSpeed;
-
-// =====================================================
-// FORCE MAGNITUDES
-// =====================================================
-
-double liftForce =
-
-    dynamicPressure *
-    sailArea *
-    liftCoefficient;
-
-double dragForce =
-
-    dynamicPressure *
-    sailArea *
-    dragCoefficient;
-
     // =====================================================
-    // DRAG DIRECTION
+    // SAIL
     // =====================================================
 
-    gz::math::Vector3d dragDirection(
+    // sheet limit
 
-        std::cos(apparentWindDirection),
+    double sailLimit =
+        std::abs(this->sailAngle);
 
-        std::sin(apparentWindDirection),
+    // sail freely aligns to wind
+    // but limited by sheet
 
+    double effectiveSailAngle =
+
+        std::clamp(
+
+            relativeWind,
+
+            -sailLimit,
+
+             sailLimit
+        );
+
+    // =====================================================
+    // SAIL FORCE
+    // =====================================================
+
+    // sail normal direction
+
+    double sailNormalAngle =
+
+        yaw +
+        effectiveSailAngle +
+        M_PI / 2.0;
+
+    gz::math::Vector3d sailForceDir(
+
+        std::cos(sailNormalAngle),
+        std::sin(sailNormalAngle),
         0.0
     );
 
-    // =====================================================
-    // LIFT DIRECTION
-    // =====================================================
+    // how well wind hits sail
 
-    double liftSign = 1.0;
+    double sailPower =
 
-    if (angleOfAttack < 0.0)
-    {
-        liftSign = -1.0;
-    }
+        std::sin(
+            relativeWind -
+            effectiveSailAngle
+        );
 
-    double liftDirectionAngle =
+    sailPower =
+        std::abs(sailPower);
 
-        apparentWindDirection +
-        liftSign * M_PI / 2.0;
+    // stable force model
 
-    gz::math::Vector3d liftDirection(
+    double sailForceMagnitude =
 
-        std::cos(liftDirectionAngle),
-
-        std::sin(liftDirectionAngle),
-
-        0.0
-    );
-
-    ///////////////////////////////////////////////////////////////////
-    // // =====================================================
-    // // TOTAL FORCE
-    // // =====================================================
-
-    // gz::math::Vector3d sailForce =
-
-    //     liftDirection * liftForce +
-    //     dragDirection * dragForce;
-    ///////////////////////////////////////////////////////////////////
-
-    // =====================================================
-    // RAW SAIL FORCE
-    // =====================================================
-
-    gz::math::Vector3d rawSailForce =
-
-        liftDirection * liftForce +
-        dragDirection * dragForce;
-
-    // =====================================================
-    // BOAT DIRECTIONS
-    // =====================================================
-
-    gz::math::Vector3d forwardDir(
-
-        std::cos(yaw),
-        std::sin(yaw),
-        0.0
-    );
-
-    gz::math::Vector3d rightDir(
-
-        -std::sin(yaw),
-        std::cos(yaw),
-        0.0
-    );
-
-    // =====================================================
-    // FORCE DECOMPOSITION
-    // =====================================================
-
-    double forwardComponent =
-        rawSailForce.Dot(forwardDir);
-
-    double sideComponent =
-        rawSailForce.Dot(rightDir);
-
-    // reduce sideways sail instability
-
-    sideComponent *= 0.35;
-
-    // reconstructed force
+        apparentWindSpeed *
+        apparentWindSpeed *
+        sailPower *
+        0.8;
 
     gz::math::Vector3d sailForce =
 
-        forwardDir * forwardComponent +
-        rightDir * sideComponent;
+        sailForceDir *
+        sailForceMagnitude;
 
-    // =====================================================
-    // APPLY FORCE
-    // =====================================================
+    // apply at center
 
     link.AddWorldForce(
+
         _ecm,
+
         sailForce
     );
 
     // =====================================================
-    // KEEL LATERAL DAMPING
+    // KEEL
     // =====================================================
 
-    // boat right vector
-
-    // gz::math::Vector3d rightDir(
-
-    //     -std::sin(yaw),
-
-    //     std::cos(yaw),
-
-    //     0.0
-    // );
-
-    // lateral velocity
-
-    double lateralSpeed =
-
-        velocity.Dot(
-            rightDir
-        );
-
-    // damping force
-
-    double forwardSpeed =
-
-        velocity.Dot(
-            gz::math::Vector3d(
-                std::cos(yaw),
-                std::sin(yaw),
-                0.0
-            )
-        );
-
-    double keelEffectiveness =
-
-        std::min(
-            std::abs(forwardSpeed) / 2.0,
-            1.0
-        );
-
-    double lateralResistance =
-
-        std::tanh(
-            std::abs(lateralSpeed) * 2.0
-        );
-
-    double keelStrength = 4.0;
+    // simple lateral damping
 
     gz::math::Vector3d keelForce =
 
         -rightDir *
-
-        lateralSpeed *
-
-        keelStrength *
-
-        lateralResistance *
-
-        keelEffectiveness;
-
-    // apply
+        sideSpeed *
+        4.0;
 
     link.AddWorldForce(
+
         _ecm,
+
         keelForce
     );
 
     // =====================================================
-    // RUDDER YAW DYNAMICS
+    // WATER DRAG
     // =====================================================
 
-    // boat forward speed
+    gz::math::Vector3d forwardDrag =
 
-    double rudderEffectiveness =
+        -forwardDir *
+        forwardSpeed *
+        1.5;
 
-        std::min(
-            std::abs(forwardSpeed),
-            3.0
-        );
+    gz::math::Vector3d sideDrag =
 
-    // target yaw rate
+        -rightDir *
+        sideSpeed *
+        3.0;
 
-    double targetYawRate =
+    link.AddWorldForce(
 
+        _ecm,
+
+        forwardDrag +
+        sideDrag
+    );
+
+    // =====================================================
+    // RUDDER
+    // =====================================================
+
+    double rudderStrength =
+
+        forwardSpeed *
+        3.0;
+
+    gz::math::Vector3d rudderForce =
+
+        rightDir *
         this->rudderAngle *
-        rudderEffectiveness *
-        2.5;
+        rudderStrength;
 
-    // smooth yaw response
+    // apply behind boat
 
-    double yawResponse = 2.0;
+    gz::math::Vector3d rudderOffset(
 
-    this->yawRate +=
+        -0.45,
+        0.0,
+        0.0
+    );
 
-        (
-            targetYawRate -
-            this->yawRate
-        ) *
+    gz::math::Vector3d worldRudderOffset(
 
-        yawResponse *
+        rudderOffset.X() * std::cos(yaw) -
+        rudderOffset.Y() * std::sin(yaw),
 
-        _info.dt.count() *
-        1e-9;
+        rudderOffset.X() * std::sin(yaw) +
+        rudderOffset.Y() * std::cos(yaw),
 
-    // set angular velocity command
+        0.0
+    );
 
-    auto angVelCmd =
+    link.AddWorldForce(
 
-        _ecm.Component<
-            gz::sim::components::AngularVelocityCmd
-        >(this->linkEntity);
+        _ecm,
 
-    if (!angVelCmd)
-    {
-        _ecm.CreateComponent(
+        rudderForce,
 
-            this->linkEntity,
-
-            gz::sim::components::AngularVelocityCmd(
-
-                gz::math::Vector3d(
-                    0.0,
-                    0.0,
-                    this->yawRate
-                )
-            )
-        );
-    }
-    else
-    {
-        angVelCmd->Data() =
-
-            gz::math::Vector3d(
-                0.0,
-                0.0,
-                this->yawRate
-            );
-    }
+        pose.Pos() + worldRudderOffset
+    );
 
     // =====================================================
     // DEBUG
@@ -572,17 +480,76 @@ double dragForce =
 
         std::cout
 
-            << "aws="
+            << "\n========================"
+
+            << "\nHEADING      = "
+            << yaw * 180.0 / M_PI
+
+            << "\n"
+
+            << "\nTRUE WIND"
+
+            << "\ndir           = "
+            << this->windDirection
+
+            << "\nspeed         = "
+            << this->windSpeed
+
+            << "\n"
+
+            << "\nBOAT"
+
+            << "\nforward speed = "
+            << forwardSpeed
+
+            << "\nside speed    = "
+            << sideSpeed
+
+            << "\nboat speed    = "
+            << boatSpeed
+
+            << "\n"
+
+            << "\nAPPARENT WIND"
+
+            << "\ndir           = "
+            << apparentWindDirection * 180.0 / M_PI
+
+            << "\nrelative      = "
+            << relativeWind * 180.0 / M_PI
+
+            << "\nspeed         = "
             << apparentWindSpeed
 
-            << " aoa="
-            << angleOfAttack
+            << "\n"
 
-            << " lift="
-            << liftForce
+            << "\nSAIL"
 
-            << " drag="
-            << dragForce
+            << "\ncmd           = "
+            << this->sailAngle * 180.0 / M_PI
+
+            << "\neffective     = "
+            << effectiveSailAngle * 180.0 / M_PI
+
+            << "\npower         = "
+            << sailPower
+
+            << "\nforce         = "
+            << sailForceMagnitude
+
+            << "\n"
+
+            << "\nRUDDER"
+
+            << "\nangle         = "
+            << this->rudderAngle
+
+            << "\nforce         = "
+            << rudderForce.Length()
+
+            << "\n"
+
+            << "========================"
 
             << std::endl;
     }

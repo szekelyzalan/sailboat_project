@@ -247,7 +247,7 @@ class BoatPhysicsNode(Node):
         # WATER DRAG
 
         self.velocity = apply_water_drag(
-            self.velocity
+            self.velocity, self.yaw, self.dt
         )
 
         # KEEL DAMPING
@@ -291,6 +291,7 @@ class BoatPhysicsNode(Node):
             self.dt
         )
 
+
         # POSITION INTEGRATION
 
         self.x += (
@@ -317,6 +318,14 @@ class BoatPhysicsNode(Node):
         qz = math.sin(
             self.yaw / 2.0
         )
+
+        # DEBUG
+        print("\n====================")
+        print("yaw:", math.degrees(self.yaw))
+        print("velocity:", self.velocity.x, self.velocity.y)
+        print("boat speed:", self.velocity.magnitude())
+        print("aoa:", math.degrees(angle_of_attack))
+        print("sail force:", sail_force.x, sail_force.y)
 
         # GAZEBO REQUEST
 

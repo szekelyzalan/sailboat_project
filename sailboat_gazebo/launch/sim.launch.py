@@ -60,6 +60,7 @@ def generate_launch_description():
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             '/baum_pos@std_msgs/msg/Float64@gz.msgs.Double',
+            '/actual_baum_pos@std_msgs/msg/Float64@gz.msgs.Double',
             '/rudder_pos@std_msgs/msg/Float64@gz.msgs.Double',
             '/boat/gps/data@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat',
             '/world/lake_balaton/wrench@geometry_msgs/msg/Wrench@gz.msgs.Wrench',

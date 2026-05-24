@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+
+<sdf version="1.9">
+
+  <model name="wind_arrow">
+
+    <static>true</static>
+
+    <!-- ================================================= -->
+    <!-- LINK                                               -->
+    <!-- ================================================= -->
+
+    <link name="arrow_link">
+
+      <!-- shaft -->
+
+      <visual name="shaft_visual">
+
+        <!-- move forward half length -->
+        <pose>2 0 0 0 1.5708 0</pose>
+
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>4.0</length>
+          </cylinder>
+        </geometry>
+
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+        </material>
+
+      </visual>
+
+      <!-- arrow head -->
+
+      <visual name="head_visual">
+
+        <!-- tip at front -->
+        <pose>4.3 0 0 0 1.5708 0</pose>
+
+        <geometry>
+          <cone>
+            <radius>0.10</radius>
+            <length>0.4</length>
+          </cone>
+        </geometry>
+
+        <material>
+          <ambient>1 0 0 1</ambient>
+          <diffuse>1 0 0 1</diffuse>
+        </material>
+
+      </visual>
+
+    </link>
+
+  </model>
+
+</sdf>

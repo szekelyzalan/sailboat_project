@@ -27,6 +27,8 @@ setup(
             'force_test_node = sailboat_physics.force_test_node:main',
             'boat_motion_node = sailboat_physics.boat_motion_node:main',
             'boat_physics_node = sailboat_physics.boat_physics_node:main',
+            'game_physics_node = sailboat_physics.sailboat_game_physics:main',
+            'boat_wind_phyiscs = sailboat_physics.sailboat_wind_physics:main',
         ],
     },
 )
