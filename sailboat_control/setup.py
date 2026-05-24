@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'actuator_node = sailboat_control.actuator_node:main',
+            'teleop_node = sailboat_control.sailboat_teleop_node:main',
         ],
     },
 )
