@@ -8,6 +8,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32
 from std_msgs.msg import Float64
+from geometry_msgs.msg import Vector3
 
 
 # =========================================================
@@ -122,10 +123,15 @@ class SailboatGamePhysics(Node):
             10
         )
 
-        # PUBLISHER
+        # PUBLISHERS
         self.actual_sail_pub = self.create_publisher(
             Float64,
             '/actual_baum_pos',
+            10
+        )
+        self.velocity_pub = self.create_publisher(
+            Vector3,
+            '/boat/velocity',
             10
         )
 
@@ -418,6 +424,15 @@ class SailboatGamePhysics(Node):
         actual_msg = Float64()
         actual_msg.data = self.sail_angle
         self.actual_sail_pub.publish(actual_msg)
+
+        # PUBLISH VELOCITY
+        vel_msg = Vector3()
+
+        vel_msg.x = self.velocity.x
+        vel_msg.y = self.velocity.y
+        vel_msg.z = 0.0
+
+        self.velocity_pub.publish(vel_msg)
 
         # SEND POSE TO GAZEBO
         req = Pose()
