@@ -56,6 +56,7 @@ def generate_launch_description():
             '/boat/gps/data@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat',
             '/vrx/debug/wind/speed@std_msgs/msg/Float32[gz.msgs.Float',
             '/vrx/debug/wind/direction@std_msgs/msg/Float32[gz.msgs.Float',
+            '/boat/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU',
         ],
         output='screen'
     )

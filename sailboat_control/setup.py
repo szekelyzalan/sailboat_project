@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'actuator_node = sailboat_control.actuator_node:main',
             'teleop_node = sailboat_control.sailboat_teleop_node:main',
+            'apparent_wind_sensor = sailboat_control.apparent_wind_sensor:main',
         ],
     },
 )
