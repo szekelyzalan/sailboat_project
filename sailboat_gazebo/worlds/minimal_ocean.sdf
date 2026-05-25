@@ -305,7 +305,7 @@
 
     <include>
       <name>mb_marker_buoy_red</name>
-      <pose>-528 191 0 0 0 0</pose>
+      <pose>-510 180 0 0 0 0</pose>
       <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/mb_marker_buoy_red</uri>
 
       <plugin name="vrx::PolyhedraBuoyancyDrag"
@@ -332,7 +332,7 @@
 
     <include>
       <name>mb_marker_buoy_black</name>
-      <pose>-528 190 0 0 0 0</pose>
+      <pose>-510 200 0 0 0 0</pose>
       <uri>https://fuel.gazebosim.org/1.0/openrobotics/models/mb_marker_buoy_black</uri>
 
       <plugin name="vrx::PolyhedraBuoyancyDrag"
@@ -472,7 +472,7 @@
         <link_name>sailboat/base_link</link_name>
         <coeff_vector>1.0 1.0 0.2</coeff_vector>
       </wind_obj>
-      <wind_direction>40</wind_direction>
+      <wind_direction>0.0</wind_direction>
       <wind_mean_velocity>4.0</wind_mean_velocity>
       <var_wind_gain_constants>0</var_wind_gain_constants>
       <var_wind_time_constants>2</var_wind_time_constants>
