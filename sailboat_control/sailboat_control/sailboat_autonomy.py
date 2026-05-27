@@ -52,12 +52,6 @@ class SailboatAutonomy(Node):
         self.ki = 0.0
         self.kd = 0.4
 
-        # SAIL PID
-        self.sail_integral = 0.0
-        self.prev_sail_error = 0.0
-        self.sail_kp = 0.8
-        self.sail_ki = 0.0
-        self.sail_kd = 1.2
 
         # SUBSCRIBERS
         self.create_subscription(
@@ -131,42 +125,52 @@ class SailboatAutonomy(Node):
     def wind_callback(self, msg):
         self.apparent_wind_dir = math.radians(msg.data)
 
-    def calc_angle_to_normal(self, sail_angle, apparent_wind):
-        # sail normal
-        if sail_angle > 0.0:
-            normal = sail_angle - math.pi / 2.0
-        else:
-            normal = sail_angle + math.pi / 2.0
-        # angle difference
-        angle = normalize_angle(apparent_wind - normal)
-        return abs(angle)
-
     # =====================================================
     # MAIN LOOP
     # =====================================================
 
+    def calculate_sail_angle(self, rel_wind):
+        # BOAT FORWARD VECTOR
+        fx = 1.0
+        fy = 0.0
+        # WIND VECTOR (BLUE)
+        wx = math.cos(rel_wind)
+        wy = math.sin(rel_wind)
+        # APPARENT VECTOR
+        # forward - wind
+        ax = fx - wx
+        ay = fy - wy
+        # FULL TAILWIND SINGULARITY
+        magnitude = math.hypot(ax, ay)
+        if magnitude < 1e-6:
+            return math.radians(90)
+        apparent_angle = math.atan2(ay, ax)
+        sail_angle = (abs(apparent_angle) + math.radians(5))
+        # CONVERT TO BAUM ANGLE
+        sail_angle = math.pi / 2 - sail_angle
+        sail_angle = max(math.radians(0), min(math.radians(90), sail_angle))
+        return sail_angle
+
+
     def update(self):
         if self.x is None:
             return
-
+        dt = 0.1
         # TARGET WAYPOINT
         tx, ty = self.waypoints[self.current_wp]
         dx = tx - self.x
         dy = ty - self.y
         distance = math.hypot(dx, dy)
-
-        # waypoint reached
+        # WAYPOINT REACHED
         if distance < 3.0:
             self.current_wp += 1
             if self.current_wp >= len(self.waypoints):
                 self.current_wp = 0
             return
-
         # TARGET HEADING
         target_heading = math.atan2(dy, dx)
         heading_error = normalize_angle(target_heading - self.heading)
-
-        # avoid oscillation around 180 deg
+        # 180 DEG SINGULARITY
         if abs(math.degrees(heading_error)) > 170:
             heading_error = math.radians(179) * self.turn_sign
         else:
@@ -175,52 +179,19 @@ class SailboatAutonomy(Node):
                 else -1.0
             )
 
-        # PID RUDDER CONTROLLER
-        dt = 0.1
-        # integral
+        # RUDDER PID
         self.heading_integral += heading_error * dt
-        # derivative
         heading_derivative = (heading_error - self.prev_heading_error) / dt
-        # PID
         rudder = -(
             self.kp * heading_error +
             self.ki * self.heading_integral +
             self.kd * heading_derivative
         )
-        # store previous
         self.prev_heading_error = heading_error
-        # clamp
         rudder = max(-0.4, min(0.4, rudder))
-
-        # SAIL PID CONTROLLER
-        # apparent wind FROM direction
+        # SAIL CONTROL
         rel_wind = normalize_angle(self.apparent_wind_dir)
-        target_angle = math.radians(85)
-        current_angle = self.calc_angle_to_normal(
-            sail_angle=0.0,
-            apparent_wind=rel_wind
-        )
-        sail_error = target_angle - current_angle
-        # PID
-        self.sail_integral += sail_error * dt
-        sail_derivative = (sail_error - self.prev_sail_error) / dt
-        sail_output = (
-            self.sail_kp * sail_error +
-            self.sail_ki * self.sail_integral +
-            self.sail_kd * sail_derivative
-        )
-        self.prev_sail_error = sail_error
-        # convert to sail angle
-        sail_angle = abs(sail_output)
-        # clamp
-        sail_angle = max(
-            math.radians(0.1),
-            min(
-                math.radians(90),
-                sail_angle
-            )
-        )
-
+        sail_angle = self.calculate_sail_angle(rel_wind)
         # PUBLISH
         rudder_msg = Float64()
         rudder_msg.data = rudder
@@ -236,6 +207,7 @@ class SailboatAutonomy(Node):
         print("HEADING ERR:", round(math.degrees(heading_error), 2))
         print("RUDDER:", round(rudder, 2))
         print("SAIL:", round(math.degrees(sail_angle), 2))
+        print("SAIL ANGLE:", math.degrees(sail_angle))
 
 
 # =========================================================
