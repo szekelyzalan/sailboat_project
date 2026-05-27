@@ -57,12 +57,21 @@ def generate_launch_description():
             '/vrx/debug/wind/speed@std_msgs/msg/Float32[gz.msgs.Float',
             '/vrx/debug/wind/direction@std_msgs/msg/Float32[gz.msgs.Float',
             '/boat/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU',
+            '/boat/lidar/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
         ],
+        output='screen'
+    )
+
+    game_physics = Node(
+        package='sailboat_physics',
+        executable='game_physics_node',
+        name='sailboat_game_physics',
         output='screen'
     )
 
     return LaunchDescription([
         set_resource_path,
         gazebo,
-        bridge
+        bridge,
+        game_physics
     ])

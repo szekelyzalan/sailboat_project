@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sailboat Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071114;
+      --panel: #102125;
+      --panel-2: #152b30;
+      --line: #28434a;
+      --text: #e8f4ef;
+      --muted: #8fb0aa;
+      --water: #0f5962;
+      --water-2: #177987;
+      --land: #1f3c2f;
+      --accent: #f0c849;
+      --cyan: #71d7e5;
+      --red: #ee5f5f;
+      --green: #71d38a;
+      --white: #f5f3df;
+      --black: #151a1c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      grid-template-rows: 64px minmax(0, 1fr) 92px;
+      height: 100vh;
+    }
+
+    header {
+      grid-column: 1 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+      background: #0a171a;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 720;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      min-width: 84px;
+      height: 34px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      background: #0d1d20;
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 680;
+    }
+
+    main {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      background: #071114;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-tools {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      display: flex;
+      gap: 8px;
+      background: rgba(7, 17, 20, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      backdrop-filter: blur(8px);
+    }
+
+    button {
+      width: 34px;
+      height: 30px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    button.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    aside {
+      min-height: 0;
+      overflow: auto;
+      border-left: 1px solid var(--line);
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .section {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:first-child {
+      padding-top: 0;
+    }
+
+    h2 {
+      margin: 0 0 11px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 760;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .metric {
+      min-height: 58px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      border-radius: 8px;
+      padding: 9px 10px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 7px;
+    }
+
+    .value {
+      font-size: 18px;
+      font-weight: 760;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .wide {
+      grid-column: 1 / 3;
+    }
+
+    footer {
+      grid-column: 1 / 3;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 1px;
+      border-top: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .readout {
+      background: #0b191c;
+      padding: 13px 16px;
+      min-width: 0;
+    }
+
+    .readout .label {
+      margin-bottom: 6px;
+    }
+
+    .readout .value {
+      font-size: 16px;
+    }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: 64px 58vh auto auto;
+        min-height: 100vh;
+        height: auto;
+      }
+
+      header,
+      footer {
+        grid-column: 1;
+      }
+
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      footer {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <h1>Sailboat Mission Dashboard</h1>
+        <div class="subtitle" id="subtitle">Waiting for ROS topics</div>
+      </div>
+      <div class="status-bar">
+        <div class="chip" id="mode">NO DATA</div>
+        <div class="chip" id="leg">DIRECT</div>
+        <div class="chip" id="link">OFFLINE</div>
+      </div>
+    </header>
+
+    <main>
+      <canvas id="map"></canvas>
+      <div class="map-tools">
+        <button id="follow" class="active" title="Follow boat">o</button>
+        <button id="zoomIn" title="Zoom in">+</button>
+        <button id="zoomOut" title="Zoom out">-</button>
+      </div>
+    </main>
+
+    <aside>
+      <div class="section">
+        <h2>Navigation</h2>
+        <div class="grid">
+          <div class="metric">
+            <div class="label">World X</div>
+            <div class="value" id="worldX">--</div>
+          </div>
+          <div class="metric">
+            <div class="label">World Y</div>
+            <div class="value" id="worldY">--</div>
+          </div>
+          <div class="metric">
+            <div class="label">Heading</div>
+            <div class="value" id="heading">--</div>
+          </div>
+          <div class="metric">
+            <div class="label">Target</div>
+            <div class="value" id="target">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Course</h2>
+        <div class="grid">
+          <div class="metric">
+            <div class="label">Active Mark</div>
+            <div class="value" id="activeMark">--</div>
+          </div>
+          <div class="metric">
+            <div class="label">Mark Distance</div>
+            <div class="value" id="markDistance">--</div>
+          </div>
+          <div class="metric">
+            <div class="label">Rounding</div>
+            <div class="value" id="rounding">--</div>
+          </div>
+          <div class="metric">
+            <div class="label">Lap</div>
+            <div class="value" id="lap">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Sensors</h2>
+        <div class="grid">
+          <div class="metric">
+            <div class="label">GPS</div>
+            <div class="value" id="gps">--</div>
+          </div>
+          <div class="metric">
+            <div class="label">LiDAR Points</div>
+            <div class="value" id="lidar">--</div>
+          </div>
+          <div class="metric wide">
+            <div class="label">Detected Buoy</div>
+            <div class="value" id="buoy">--</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <footer>
+      <div class="readout">
+        <div class="label">Wind Direction</div>
+        <div class="value" id="windDir">--</div>
+      </div>
+      <div class="readout">
+        <div class="label">Wind Speed</div>
+        <div class="value" id="windSpeed">--</div>
+      </div>
+      <div class="readout">
+        <div class="label">Apparent Wind</div>
+        <div class="value" id="apparentWind">--</div>
+      </div>
+      <div class="readout">
+        <div class="label">Rudder</div>
+        <div class="value" id="rudder">--</div>
+      </div>
+      <div class="readout">
+        <div class="label">Sail</div>
+        <div class="value" id="sail">--</div>
+      </div>
+      <div class="readout">
+        <div class="label">Close LiDAR Rounding</div>
+        <div class="value" id="lidarRound">--</div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('map');
+    const ctx = canvas.getContext('2d');
+    const ids = {};
+    for (const id of [
+      'subtitle', 'mode', 'leg', 'link', 'worldX', 'worldY', 'heading',
+      'target', 'activeMark', 'markDistance', 'rounding', 'lap', 'gps',
+      'lidar', 'buoy', 'windDir', 'windSpeed', 'apparentWind', 'rudder',
+      'sail', 'lidarRound'
+    ]) {
+      ids[id] = document.getElementById(id);
+    }
+
+    let state = {};
+    let follow = true;
+    let zoom = 12;
+    let center = {x: -500, y: 190};
+    let lastDataTime = 0;
+
+    const markColors = ['#ee5f5f', '#151a1c', '#f5f3df', '#71d38a'];
+    const fallbackMarks = [
+      {index: 0, x: -510, y: 180, rounding_side: 'starboard'},
+      {index: 1, x: -490, y: 180, rounding_side: 'starboard'},
+      {index: 2, x: -490, y: 200, rounding_side: 'starboard'},
+      {index: 3, x: -510, y: 200, rounding_side: 'starboard'}
+    ];
+
+    document.getElementById('follow').onclick = () => {
+      follow = !follow;
+      document.getElementById('follow').classList.toggle('active', follow);
+    };
+    document.getElementById('zoomIn').onclick = () => zoom *= 1.18;
+    document.getElementById('zoomOut').onclick = () => zoom /= 1.18;
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.floor(rect.width * scale));
+      canvas.height = Math.max(1, Math.floor(rect.height * scale));
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function fmt(value, decimals = 1, suffix = '') {
+      if (value === null || value === undefined || Number.isNaN(value)) {
+        return '--';
+      }
+      return `${Number(value).toFixed(decimals)}${suffix}`;
+    }
+
+    function normDeg(deg) {
+      if (deg === null || deg === undefined) return null;
+      let value = ((deg + 180) % 360 + 360) % 360 - 180;
+      return value;
+    }
+
+    function marks() {
+      return state.course_marks && state.course_marks.length
+        ? state.course_marks
+        : fallbackMarks;
+    }
+
+    function worldToScreen(point) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: rect.width / 2 + (point.x - center.x) * zoom,
+        y: rect.height / 2 - (point.y - center.y) * zoom
+      };
+    }
+
+    function relToWorld(point) {
+      if (!state.boat || state.heading_deg === null || state.heading_deg === undefined) {
+        return null;
+      }
+      const heading = state.heading_deg * Math.PI / 180;
+      return {
+        x: state.boat.x + Math.cos(heading) * point.x - Math.sin(heading) * point.y,
+        y: state.boat.y + Math.sin(heading) * point.x + Math.cos(heading) * point.y
+      };
+    }
+
+    function drawLake(rect) {
+      ctx.fillStyle = '#071114';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+
+      const lake = [
+        {x: -570, y: 154}, {x: -536, y: 166}, {x: -501, y: 160},
+        {x: -456, y: 174}, {x: -435, y: 197}, {x: -466, y: 222},
+        {x: -505, y: 230}, {x: -548, y: 218}, {x: -582, y: 193}
+      ].map(worldToScreen);
+
+      ctx.beginPath();
+      lake.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+      ctx.closePath();
+      const water = ctx.createLinearGradient(0, 0, rect.width, rect.height);
+      water.addColorStop(0, '#0f5962');
+      water.addColorStop(1, '#177987');
+      ctx.fillStyle = water;
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(232, 244, 239, 0.22)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(232, 244, 239, 0.08)';
+      ctx.lineWidth = 1;
+      for (let x = Math.floor(center.x - rect.width / zoom); x < center.x + rect.width / zoom; x += 5) {
+        const a = worldToScreen({x, y: center.y - rect.height / zoom});
+        const b = worldToScreen({x, y: center.y + rect.height / zoom});
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+      for (let y = Math.floor(center.y - rect.height / zoom); y < center.y + rect.height / zoom; y += 5) {
+        const a = worldToScreen({x: center.x - rect.width / zoom, y});
+        const b = worldToScreen({x: center.x + rect.width / zoom, y});
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    }
+
+    function drawCourse() {
+      const courseMarks = marks();
+      if (!courseMarks.length) return;
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(240, 200, 73, 0.72)';
+      ctx.beginPath();
+      courseMarks.forEach((mark, i) => {
+        const p = worldToScreen(mark);
+        i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
+      });
+      const first = worldToScreen(courseMarks[0]);
+      ctx.lineTo(first.x, first.y);
+      ctx.stroke();
+
+      if (state.course) {
+        const a = worldToScreen(state.course.current);
+        const b = worldToScreen(state.course.next);
+        ctx.strokeStyle = '#71d7e5';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+
+      courseMarks.forEach((mark, i) => {
+        const p = worldToScreen(mark);
+        const active = state.course && state.course.current_index === mark.index;
+        if (active && state.autonomy) {
+          const radius = Math.max(
+            state.autonomy.mark_keepout_radius || 0,
+            state.autonomy.rounding_clearance || 0
+          ) * zoom;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(238, 95, 95, 0.16)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(238, 95, 95, 0.7)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, active ? 10 : 8, 0, Math.PI * 2);
+        ctx.fillStyle = markColors[i % markColors.length];
+        ctx.fill();
+        ctx.lineWidth = active ? 3 : 1.5;
+        ctx.strokeStyle = active ? '#f0c849' : 'rgba(232, 244, 239, 0.85)';
+        ctx.stroke();
+
+        ctx.fillStyle = i === 1 ? '#e8f4ef' : '#071114';
+        ctx.font = '700 10px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(mark.index + 1), p.x, p.y);
+      });
+    }
+
+    function drawTrack() {
+      if (!state.track || state.track.length < 2) return;
+      ctx.strokeStyle = 'rgba(232, 244, 239, 0.7)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      state.track.forEach((point, i) => {
+        const p = worldToScreen(point);
+        i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
+      });
+      ctx.stroke();
+    }
+
+    function drawLidar() {
+      if (!state.lidar_points || !state.lidar_points.length) return;
+      ctx.fillStyle = 'rgba(113, 215, 229, 0.55)';
+      for (const point of state.lidar_points) {
+        const world = relToWorld(point);
+        if (!world) continue;
+        const p = worldToScreen(world);
+        ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+      }
+
+      if (state.buoy_relative) {
+        const world = relToWorld(state.buoy_relative);
+        if (world) {
+          const p = worldToScreen(world);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+          ctx.fillStyle = '#f0c849';
+          ctx.fill();
+          ctx.strokeStyle = '#071114';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawAutonomyTarget() {
+      const auto = state.autonomy;
+      if (!auto) return;
+      const target = {x: auto.target_x, y: auto.target_y};
+      const p = worldToScreen(target);
+      ctx.strokeStyle = '#f0c849';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(p.x - 12, p.y);
+      ctx.lineTo(p.x + 12, p.y);
+      ctx.moveTo(p.x, p.y - 12);
+      ctx.lineTo(p.x, p.y + 12);
+      ctx.stroke();
+    }
+
+    function drawBoat() {
+      if (!state.boat) return;
+      const p = worldToScreen(state.boat);
+      const heading = (state.heading_deg || 0) * Math.PI / 180;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(-heading);
+      ctx.beginPath();
+      ctx.moveTo(15, 0);
+      ctx.lineTo(-10, -7);
+      ctx.lineTo(-6, 0);
+      ctx.lineTo(-10, 7);
+      ctx.closePath();
+      ctx.fillStyle = '#e8f4ef';
+      ctx.fill();
+      ctx.strokeStyle = '#071114';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
+      if (state.wind_dir_deg !== null && state.wind_dir_deg !== undefined) {
+        const angle = state.wind_dir_deg * Math.PI / 180;
+        ctx.strokeStyle = '#f0c849';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + Math.cos(angle) * 38, p.y - Math.sin(angle) * 38);
+        ctx.stroke();
+      }
+    }
+
+    function draw() {
+      resize();
+      const rect = canvas.getBoundingClientRect();
+      if (follow && state.boat) {
+        center = {x: state.boat.x, y: state.boat.y};
+      }
+      drawLake(rect);
+      drawCourse();
+      drawTrack();
+      drawLidar();
+      drawAutonomyTarget();
+      drawBoat();
+      requestAnimationFrame(draw);
+    }
+
+    function updateUi() {
+      const auto = state.autonomy || {};
+      const online = Date.now() - lastDataTime < 1800;
+      ids.link.textContent = online ? 'ONLINE' : 'OFFLINE';
+      ids.link.style.color = online ? '#71d38a' : '#ee5f5f';
+      ids.mode.textContent = auto.mode || 'NO DATA';
+      ids.leg.textContent = auto.leg_mode || 'DIRECT';
+      ids.subtitle.textContent = state.boat
+        ? `Lake Balaton local frame, ${fmt(state.boat.x, 1)}, ${fmt(state.boat.y, 1)}`
+        : 'Waiting for ROS topics';
+      ids.worldX.textContent = state.boat ? fmt(state.boat.x, 2, ' m') : '--';
+      ids.worldY.textContent = state.boat ? fmt(state.boat.y, 2, ' m') : '--';
+      ids.heading.textContent = fmt(normDeg(state.heading_deg), 1, ' deg');
+      ids.target.textContent = auto.target_kind || '--';
+      ids.activeMark.textContent = auto.active_mark_name || (
+        state.course ? `mark_${state.course.current_index}` : '--'
+      );
+      ids.markDistance.textContent = fmt(auto.mark_distance, 2, ' m');
+      ids.rounding.textContent = auto.rounding_side_ok === undefined
+        ? '--'
+        : (auto.rounding_side_ok ? 'inside' : 'outside');
+      ids.lap.textContent = state.lap === undefined ? '--' : String(state.lap);
+      ids.gps.textContent = state.gps
+        ? `${fmt(state.gps.latitude, 5)}, ${fmt(state.gps.longitude, 5)}`
+        : '--';
+      ids.lidar.textContent = state.lidar_points ? String(state.lidar_points.length) : '--';
+      ids.buoy.textContent = state.buoy_relative
+        ? `${fmt(state.buoy_relative.distance, 2, ' m')} rel`
+        : '--';
+      ids.windDir.textContent = fmt(normDeg(state.wind_dir_deg), 1, ' deg');
+      ids.windSpeed.textContent = fmt(state.wind_speed, 2, ' m/s');
+      ids.apparentWind.textContent = fmt(normDeg(state.apparent_wind_deg), 1, ' deg');
+      ids.rudder.textContent = fmt(state.rudder_deg, 1, ' deg');
+      ids.sail.textContent = fmt(state.actual_sail_deg ?? state.sail_deg, 1, ' deg');
+      ids.lidarRound.textContent = auto.lidar_mark_active === undefined
+        ? '--'
+        : (auto.lidar_mark_active ? 'active' : 'standby');
+    }
+
+    async function poll() {
+      try {
+        const response = await fetch('/state', {cache: 'no-store'});
+        state = await response.json();
+        lastDataTime = Date.now();
+        updateUi();
+      } catch (error) {
+        updateUi();
+      } finally {
+        setTimeout(poll, 180);
+      }
+    }
+
+    draw();
+    poll();
+  </script>
+</body>
+</html>

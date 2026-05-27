@@ -8,6 +8,8 @@
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>
+  <depend>ament_index_python</depend>
+  <depend>launch_ros</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>

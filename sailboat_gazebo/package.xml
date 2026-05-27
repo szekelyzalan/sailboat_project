@@ -15,6 +15,8 @@
 
   <!-- Gazebo / GZ -->
   <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>sailboat_physics</exec_depend>
 
   <!-- Python launch helper -->
   <exec_depend>ament_index_python</exec_depend>
