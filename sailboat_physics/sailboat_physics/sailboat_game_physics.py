@@ -162,41 +162,51 @@ class SailboatGamePhysics(Node):
     def rudder_callback(self, msg):
         self.rudder_angle = msg.data
 
-    def calc_efficiency(self, apparent_dir):
-
-        # GLOBAL SAIL DIRECTION
-        sail_dir = self.yaw + self.sail_angle
-
-        # APPARENT WIND VECTOR
-        aw_x = math.cos(apparent_dir)
-        aw_y = math.sin(apparent_dir)
-
-        # ACTIVE SAIL NORMAL
-        # choose inward-facing normal
-        if self.sail_angle > 0.0:
-            normal_dir = sail_dir - math.pi / 2.0
+    def calc_efficiency(self, relative_wind):
+        # FORWARD VECTOR
+        fx = 1.0
+        fy = 0.0
+        # WIND VECTOR
+        wx = math.cos(relative_wind)
+        wy = math.sin(relative_wind)
+        # forward - wind
+        ox = fx - wx
+        oy = fy - wy
+        magnitude = math.hypot(ox, oy)
+        # FULL DOWNWIND SINGULARITY
+        if magnitude < 1e-6:
+            return abs(math.sin(self.sail_angle))
+        # normalize forward - wind
+        ox /= magnitude
+        oy /= magnitude
+        # SAIL NORMAL
+        if relative_wind > 0.0:
+            # wind from left
+            # sail on right
+            # inward normal points left
+            normal_dir = self.sail_angle + math.pi / 2.0
         else:
-            normal_dir = sail_dir + math.pi / 2.0
-        normal_x = math.cos(normal_dir)
-        normal_y = math.sin(normal_dir)
-
-        # ANGLE BETWEEN NORMAL AND WIND
-        dot = aw_x * normal_x + aw_y * normal_y
+            # wind from right
+            # sail on left
+            # inward normal points right
+            normal_dir = self.sail_angle - math.pi / 2.0
+        nx = math.cos(normal_dir)
+        ny = math.sin(normal_dir)
+        # ANGLE BETWEEN NORMAL AND FORWARD - WIND VECTOR
+        dot = ox * nx + oy * ny
         dot = max(-1.0, min(1.0, dot))
         angle = math.acos(dot)
-        angle_deg = math.degrees(angle)
 
         # EFFICIENCY
-        # 0°   -> luffing
-        # 90°  -> strongest
         efficiency = math.sin(angle)
+        angle_deg = round(math.degrees(angle), 2)
         efficiency = max(
             0.0,
             min(1.0, efficiency)
-        ) if angle_deg <= 90 else 0.0
+        )
 
         # DEBUG
-        print("ANGLE TO NORMAL :", round(angle_deg, 2))
+        print("ANGLE TO NORMAL :", round(math.degrees(angle), 2))
         print("TRIM EFFICIENCY :", round(efficiency, 3))
 
         return efficiency
@@ -262,7 +272,7 @@ class SailboatGamePhysics(Node):
             wind_efficiency = 0.0
 
         # TRIM EFFICIENCY
-        trim_efficiency = self.calc_efficiency(apparent_dir)
+        trim_efficiency = self.calc_efficiency(relative_wind)
 
         # TOTAL SAIL POWER
         sail_power = (
@@ -427,7 +437,8 @@ class SailboatGamePhysics(Node):
 
         # PUBLISH VELOCITY
         vel_msg = Vector3()
-
+        # self.velocity.x = 0.0
+        # self.velocity.y = 0.0
         vel_msg.x = self.velocity.x
         vel_msg.y = self.velocity.y
         vel_msg.z = 0.0
