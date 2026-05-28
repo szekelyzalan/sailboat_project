@@ -2,6 +2,7 @@
 
 import math
 import json
+import sys
 from dataclasses import dataclass
 
 import rclpy
@@ -40,6 +41,17 @@ def interpolate_angle(start, end, ratio):
     return normalize_angle(start + normalize_angle(end - start) * ratio)
 
 
+def strip_debug_flags(args):
+    debug = False
+    clean_args = []
+    for arg in args:
+        if arg in ('--debug', '--verbose'):
+            debug = True
+        else:
+            clean_args.append(arg)
+    return debug, clean_args
+
+
 @dataclass
 class CourseMark:
     name: str
@@ -66,8 +78,13 @@ class SailboatAutonomy(Node):
     LEG_DIRECT = 'DIRECT'
     LEG_TACKING = 'TACKING'
 
-    def __init__(self):
+    def __init__(self, debug_default=False):
         super().__init__('sailboat_autonomy')
+
+        self.declare_parameter('debug', debug_default)
+        self.declare_parameter('verbose', debug_default)
+        self.debug_enabled = self.get_parameter('debug').value
+        self.verbose_enabled = self.get_parameter('verbose').value
 
         # STATE
         self.x = None
@@ -181,7 +198,8 @@ class SailboatAutonomy(Node):
         self.ki = 0.0
         self.kd = 0.4
 
-        self.log_course()
+        if self.verbose_enabled:
+            self.log_course()
 
         # SUBSCRIBERS
         self.create_subscription(
@@ -868,8 +886,59 @@ class SailboatAutonomy(Node):
         self.rudder_pub.publish(rudder_msg)
         self.sail_pub.publish(sail_msg)
         self.publish_status(target, distance, target_kind, heading_error)
+        self.debug_print_status(
+            target_kind,
+            target,
+            distance,
+            heading_error,
+            rudder,
+            sail_angle
+        )
 
-        # DEBUG
+    def publish_status(self, target, distance, target_kind, heading_error):
+        mark = self.active_mark()
+        mark_x, mark_y = self.mark_position(mark)
+        msg = String()
+        msg.data = json.dumps({
+            'mode': self.mode,
+            'leg_mode': self.leg_mode,
+            'tack_side': self.tack_side,
+            'target_kind': target_kind,
+            'target_x': target[0],
+            'target_y': target[1],
+            'target_distance': distance,
+            'heading_error_deg': math.degrees(heading_error),
+            'active_mark': self.current_mark,
+            'active_mark_name': mark.name,
+            'active_mark_x': mark_x,
+            'active_mark_y': mark_y,
+            'mark_distance': distance_between(
+                self.get_position(),
+                (mark_x, mark_y)
+            ),
+            'mark_keepout_radius': self.mark_keepout_radius,
+            'rounding_clearance': self.rounding_clearance,
+            'rounding_side_ok': self.is_on_rounding_side(
+                self.get_position(),
+                mark,
+                self.next_mark()
+            ),
+            'lidar_mark_active': self.should_use_lidar_for_rounding(mark),
+        })
+        self.status_pub.publish(msg)
+
+    def debug_print_status(
+        self,
+        target_kind,
+        target,
+        distance,
+        heading_error,
+        rudder,
+        sail_angle
+    ):
+        if not self.debug_enabled:
+            return
+
         print("\n====================")
         print("MODE      :", self.mode)
         print("LEG MODE  :", self.leg_mode)
@@ -905,46 +974,16 @@ class SailboatAutonomy(Node):
         print("RUDDER:", round(rudder, 2))
         print("SAIL:", round(math.degrees(sail_angle), 2))
 
-    def publish_status(self, target, distance, target_kind, heading_error):
-        mark = self.active_mark()
-        mark_x, mark_y = self.mark_position(mark)
-        msg = String()
-        msg.data = json.dumps({
-            'mode': self.mode,
-            'leg_mode': self.leg_mode,
-            'tack_side': self.tack_side,
-            'target_kind': target_kind,
-            'target_x': target[0],
-            'target_y': target[1],
-            'target_distance': distance,
-            'heading_error_deg': math.degrees(heading_error),
-            'active_mark': self.current_mark,
-            'active_mark_name': mark.name,
-            'active_mark_x': mark_x,
-            'active_mark_y': mark_y,
-            'mark_distance': distance_between(
-                self.get_position(),
-                (mark_x, mark_y)
-            ),
-            'mark_keepout_radius': self.mark_keepout_radius,
-            'rounding_clearance': self.rounding_clearance,
-            'rounding_side_ok': self.is_on_rounding_side(
-                self.get_position(),
-                mark,
-                self.next_mark()
-            ),
-            'lidar_mark_active': self.should_use_lidar_for_rounding(mark),
-        })
-        self.status_pub.publish(msg)
-
 
 # =========================================================
 # MAIN
 # =========================================================
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = SailboatAutonomy()
+    raw_args = sys.argv[1:] if args is None else args
+    debug_enabled, clean_args = strip_debug_flags(raw_args)
+    rclpy.init(args=clean_args)
+    node = SailboatAutonomy(debug_default=debug_enabled)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

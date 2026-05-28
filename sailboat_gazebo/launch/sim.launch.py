@@ -1,11 +1,16 @@
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, SetEnvironmentVariable
 from ament_index_python.packages import get_package_share_directory
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 import os
 
 
 def generate_launch_description():
+    debug = LaunchConfiguration('debug')
+    verbose = LaunchConfiguration('verbose')
+    gz_verbosity = LaunchConfiguration('gz_verbosity')
     sailboat_gazebo_dir = get_package_share_directory('sailboat_gazebo')
     vrx_gz_dir = get_package_share_directory('vrx_gz')
     world = os.path.join(
@@ -38,7 +43,7 @@ def generate_launch_description():
         cmd=[
             'gz',
             'sim',
-            '-v', '4',
+            '-v', gz_verbosity,
             world
         ],
         output='screen'
@@ -66,10 +71,29 @@ def generate_launch_description():
         package='sailboat_physics',
         executable='game_physics_node',
         name='sailboat_game_physics',
+        parameters=[{
+            'debug': ParameterValue(debug, value_type=bool),
+            'verbose': ParameterValue(verbose, value_type=bool),
+        }],
         output='screen'
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'debug',
+            default_value='false',
+            description='Enable per-tick debug output from sailboat nodes.'
+        ),
+        DeclareLaunchArgument(
+            'verbose',
+            default_value='false',
+            description='Enable startup/status logs from sailboat nodes.'
+        ),
+        DeclareLaunchArgument(
+            'gz_verbosity',
+            default_value='1',
+            description='Gazebo console verbosity level.'
+        ),
         set_resource_path,
         gazebo,
         bridge,

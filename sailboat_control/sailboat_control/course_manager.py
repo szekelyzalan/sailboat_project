@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
 
+import sys
 from dataclasses import dataclass
 
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Bool
 from std_msgs.msg import Float64MultiArray
+
+
+def strip_verbose_flags(args):
+    verbose = False
+    clean_args = []
+    for arg in args:
+        if arg in ('--debug', '--verbose'):
+            verbose = True
+        else:
+            clean_args.append(arg)
+    return verbose, clean_args
 
 
 @dataclass
@@ -17,9 +29,11 @@ class CourseMark:
 
 
 class CourseManager(Node):
-    def __init__(self):
+    def __init__(self, verbose_default=False):
         super().__init__('course_manager')
 
+        self.declare_parameter('verbose', verbose_default)
+        self.verbose_enabled = self.get_parameter('verbose').value
         self.declare_parameter('repeat_course', True)
         self.declare_parameter('lap_limit', 0)
 
@@ -48,7 +62,8 @@ class CourseManager(Node):
         )
         self.timer = self.create_timer(0.2, self.publish_active_leg)
 
-        self.log_course()
+        if self.verbose_enabled:
+            self.log_course()
 
     def load_course(self):
         defaults = [
@@ -145,8 +160,10 @@ class CourseManager(Node):
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = CourseManager()
+    raw_args = sys.argv[1:] if args is None else args
+    verbose_enabled, clean_args = strip_verbose_flags(raw_args)
+    rclpy.init(args=clean_args)
+    node = CourseManager(verbose_default=verbose_enabled)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

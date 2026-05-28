@@ -3,11 +3,14 @@ from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
     use_buoy_detector = LaunchConfiguration('use_buoy_detector')
     use_dashboard = LaunchConfiguration('use_dashboard')
+    debug = LaunchConfiguration('debug')
+    verbose = LaunchConfiguration('verbose')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -20,11 +23,24 @@ def generate_launch_description():
             default_value='true',
             description='Start the local browser dashboard.'
         ),
+        DeclareLaunchArgument(
+            'debug',
+            default_value='false',
+            description='Enable per-tick debug output from sailboat nodes.'
+        ),
+        DeclareLaunchArgument(
+            'verbose',
+            default_value='false',
+            description='Enable startup/status logs from sailboat nodes.'
+        ),
 
         Node(
             package='sailboat_control',
             executable='course_manager',
             name='course_manager',
+            parameters=[{
+                'verbose': ParameterValue(verbose, value_type=bool),
+            }],
             output='screen',
         ),
         Node(
@@ -44,6 +60,10 @@ def generate_launch_description():
             package='sailboat_control',
             executable='sailboat_autonomy',
             name='sailboat_autonomy',
+            parameters=[{
+                'debug': ParameterValue(debug, value_type=bool),
+                'verbose': ParameterValue(verbose, value_type=bool),
+            }],
             output='screen',
         ),
         Node(
