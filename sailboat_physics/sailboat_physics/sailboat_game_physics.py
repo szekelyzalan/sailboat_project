@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 
 import math
+import sys
 from gz.transport13 import Node as GzNode
 from gz.msgs10.pose_pb2 import Pose
 from gz.msgs10.boolean_pb2 import Boolean
+from builtin_interfaces.msg import Time
+from geometry_msgs.msg import Vector3
 import rclpy
 from rclpy.node import Node
+from rosgraph_msgs.msg import Clock
 from std_msgs.msg import Float32
 from std_msgs.msg import Float64
-from geometry_msgs.msg import Vector3
 
 
 # =========================================================
@@ -62,13 +65,33 @@ def normalize_angle(angle):
     )
 
 
+def strip_debug_flags(args):
+    debug = False
+    clean_args = []
+    for arg in args:
+        if arg in ('--debug', '--verbose'):
+            debug = True
+        else:
+            clean_args.append(arg)
+    return debug, clean_args
+
+
+def time_to_sec(time_msg):
+    return time_msg.sec + time_msg.nanosec * 1e-9
+
+
 # =========================================================
 # MAIN NODE
 # =========================================================
 
 class SailboatGamePhysics(Node):
-    def __init__(self):
+    def __init__(self, debug_default=False):
         super().__init__('sailboat_game_physics')
+
+        self.declare_parameter('debug', debug_default)
+        self.declare_parameter('verbose', debug_default)
+        self.debug_enabled = self.get_parameter('debug').value
+        self.verbose_enabled = self.get_parameter('verbose').value
 
         # POSITION
         self.x = -520.0
@@ -96,8 +119,16 @@ class SailboatGamePhysics(Node):
         # PARAMETERS
         self.dt = 0.05
         self.boat_mass = 6.44
+        self.latest_clock = None
+        self.last_physics_clock = None
 
         # SUBSCRIBERS
+        self.create_subscription(
+            Clock,
+            '/clock',
+            self.clock_callback,
+            10
+        )
         self.create_subscription(
             Float32,
             '/vrx/debug/wind/speed',
@@ -143,11 +174,15 @@ class SailboatGamePhysics(Node):
             self.dt,
             self.update_physics
         )
-        self.get_logger().info('Sailboat Game Physics Started')
+        if self.verbose_enabled:
+            self.get_logger().info('Sailboat Game Physics Started')
 
     # =====================================================
     # CALLBACKS
     # =====================================================
+
+    def clock_callback(self, msg):
+        self.latest_clock = msg.clock
 
     def wind_speed_callback(self, msg):
         self.wind_speed = msg.data
@@ -161,6 +196,29 @@ class SailboatGamePhysics(Node):
 
     def rudder_callback(self, msg):
         self.rudder_angle = msg.data
+
+    def simulation_is_running(self):
+        if self.latest_clock is None:
+            return False
+
+        if self.last_physics_clock is None:
+            self.last_physics_clock = Time()
+            self.last_physics_clock.sec = self.latest_clock.sec
+            self.last_physics_clock.nanosec = self.latest_clock.nanosec
+            return False
+
+        latest = time_to_sec(self.latest_clock)
+        previous = time_to_sec(self.last_physics_clock)
+        if latest <= previous:
+            return False
+
+        self.last_physics_clock.sec = self.latest_clock.sec
+        self.last_physics_clock.nanosec = self.latest_clock.nanosec
+        return True
+
+    def debug_print(self, *args):
+        if self.debug_enabled:
+            print(*args)
 
     def calc_efficiency(self, relative_wind):
         # FORWARD VECTOR
@@ -195,19 +253,17 @@ class SailboatGamePhysics(Node):
         # ANGLE BETWEEN NORMAL AND FORWARD - WIND VECTOR
         dot = ox * nx + oy * ny
         dot = max(-1.0, min(1.0, dot))
-        angle = math.acos(dot)
+        angle = math.pi - math.acos(dot)
 
         # EFFICIENCY
         efficiency = math.sin(angle)
-        angle_deg = round(math.degrees(angle), 2)
         efficiency = max(
             0.0,
             min(1.0, efficiency)
-        )
+        ) if angle <= math.pi/2 else 0.0
 
-        # DEBUG
-        print("ANGLE TO NORMAL :", round(math.degrees(angle), 2))
-        print("TRIM EFFICIENCY :", round(efficiency, 3))
+        self.debug_print("ANGLE TO NORMAL :", round(math.degrees(angle), 2))
+        self.debug_print("TRIM EFFICIENCY :", round(efficiency, 3))
 
         return efficiency
 
@@ -217,6 +273,9 @@ class SailboatGamePhysics(Node):
     # =====================================================
 
     def update_physics(self):
+        if not self.simulation_is_running():
+            return
+
         # TRUE WIND
         true_wind = Vector2(
             self.wind_speed *
@@ -363,72 +422,70 @@ class SailboatGamePhysics(Node):
         qw = math.cos(self.yaw / 2.0)
         qz = math.sin(self.yaw / 2.0)
 
-        # =================================================
-        # DEBUG
-        # =================================================
-        print("\n========================")
-        print(
-            "TRUE WIND DIR :",
-            round(math.degrees(
-                self.wind_direction
-            ), 2)
-        )
-        print(
-            "BOAT HEADING  :",
-            round(math.degrees(
-                self.yaw
-            ), 2)
-        )
-        print(
-            "APP WIND DIR  :",
-            round(math.degrees(
-                apparent_dir
-            ), 2)
-        )
-        print(
-            "REL WIND      :",
-            round(relative_deg, 2)
-        )
-        print(
-            "boat speed    :",
-            round(
-                self.velocity.magnitude(),
-                3
+        if self.debug_enabled:
+            print("\n========================")
+            print(
+                "TRUE WIND DIR :",
+                round(math.degrees(
+                    self.wind_direction
+                ), 2)
             )
-        )
-        print(
-            "wind eff      :",
-            round(
-                wind_efficiency,
-                3
+            print(
+                "BOAT HEADING  :",
+                round(math.degrees(
+                    self.yaw
+                ), 2)
             )
-        )
-        print(
-            "sail force    :",
-            round(
-                thrust,
-                3
+            print(
+                "APP WIND DIR  :",
+                round(math.degrees(
+                    apparent_dir
+                ), 2)
             )
-        )
-        print(
-            "baum angle    :",
-            round(
-                math.degrees(
-                    self.sail_angle
-                ),
-                2
+            print(
+                "REL WIND      :",
+                round(relative_deg, 2)
             )
-        )
-        print(
-            "sheet length  :",
-            round(
-                math.degrees(
-                    self.sheet_length
-                ),
-                2
+            print(
+                "boat speed    :",
+                round(
+                    self.velocity.magnitude(),
+                    3
+                )
             )
-        )
-        print("========================")
+            print(
+                "wind eff      :",
+                round(
+                    wind_efficiency,
+                    3
+                )
+            )
+            print(
+                "sail force    :",
+                round(
+                    thrust,
+                    3
+                )
+            )
+            print(
+                "baum angle    :",
+                round(
+                    math.degrees(
+                        self.sail_angle
+                    ),
+                    2
+                )
+            )
+            print(
+                "sheet length  :",
+                round(
+                    math.degrees(
+                        self.sheet_length
+                    ),
+                    2
+                )
+            )
+            print("========================")
 
         # VISUAL baum UPDATE
         actual_msg = Float64()
@@ -461,17 +518,25 @@ class SailboatGamePhysics(Node):
             100
         )
         if not success:
-            print("SET_POSE REQUEST FAILED")
+            self.get_logger().warning(
+                'SET_POSE request failed',
+                throttle_duration_sec=5.0
+            )
         elif not response.data:
-            print("SET_POSE REJECTED")
+            self.get_logger().warning(
+                'SET_POSE request rejected',
+                throttle_duration_sec=5.0
+            )
 
 
 # =========================================================
 # MAIN
 # =========================================================
 def main(args=None):
-    rclpy.init(args=args)
-    node = SailboatGamePhysics()
+    raw_args = sys.argv[1:] if args is None else args
+    debug_enabled, clean_args = strip_debug_flags(raw_args)
+    rclpy.init(args=clean_args)
+    node = SailboatGamePhysics(debug_default=debug_enabled)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
