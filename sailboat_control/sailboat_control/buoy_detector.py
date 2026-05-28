@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 
+"""Detect nearby buoys from the 2D LiDAR scan."""
+
 import math
 
-import rclpy
 from geometry_msgs.msg import PointStamped
+import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 
 
 class BuoyDetector(Node):
-    def __init__(self):
+    """Cluster valid LiDAR returns and publish the closest buoy candidate."""
+
+    def __init__(self) -> None:
         super().__init__('buoy_detector')
 
         self.min_cluster_points = 3
@@ -31,14 +35,19 @@ class BuoyDetector(Node):
 
         self.get_logger().info('Buoy detector started.')
 
-    def is_valid_range(self, scan, value):
+    def is_valid_range(self, scan: LaserScan, value: float) -> bool:
         return (
             math.isfinite(value) and
             max(scan.range_min, self.min_detection_range) <= value and
             value <= min(scan.range_max, self.max_detection_range)
         )
 
-    def point_from_scan(self, scan, index, distance):
+    def point_from_scan(
+        self,
+        scan: LaserScan,
+        index: int,
+        distance: float
+    ) -> tuple[float, float, float]:
         angle = scan.angle_min + index * scan.angle_increment
         return (
             distance * math.cos(angle),
@@ -46,7 +55,10 @@ class BuoyDetector(Node):
             distance,
         )
 
-    def build_clusters(self, scan):
+    def build_clusters(
+        self,
+        scan: LaserScan
+    ) -> list[list[tuple[float, float, float]]]:
         clusters = []
         current = []
         previous = None
@@ -78,13 +90,16 @@ class BuoyDetector(Node):
 
         return clusters
 
-    def cluster_center(self, cluster):
+    def cluster_center(
+        self,
+        cluster: list[tuple[float, float, float]]
+    ) -> tuple[float, float, float]:
         x = sum(point[0] for point in cluster) / len(cluster)
         y = sum(point[1] for point in cluster) / len(cluster)
         distance = math.hypot(x, y)
         return x, y, distance
 
-    def scan_callback(self, scan):
+    def scan_callback(self, scan: LaserScan) -> None:
         candidates = []
         for cluster in self.build_clusters(scan):
             if len(cluster) < self.min_cluster_points:
@@ -106,7 +121,7 @@ class BuoyDetector(Node):
         self.buoy_pub.publish(msg)
 
 
-def main(args=None):
+def main(args=None) -> None:
     rclpy.init(args=args)
     node = BuoyDetector()
     rclpy.spin(node)

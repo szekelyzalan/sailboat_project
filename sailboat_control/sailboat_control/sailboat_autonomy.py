@@ -1,47 +1,45 @@
 #!/usr/bin/env python3
 
-import math
-import json
-import sys
-from dataclasses import dataclass
+"""Autonomous course-following controller for the sailboat simulation."""
 
-import rclpy
+from dataclasses import dataclass
+import json
+import math
+import sys
+
 from geometry_msgs.msg import PointStamped
+import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import NavSatFix
 from sensor_msgs.msg import Imu
+from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Bool
+from std_msgs.msg import Float32
 from std_msgs.msg import Float64
 from std_msgs.msg import Float64MultiArray
-from std_msgs.msg import Float32
 from std_msgs.msg import String
 
 
-# =========================================================
-# UTILS
-# =========================================================
-
-def normalize_angle(angle):
+def normalize_angle(angle: float) -> float:
     return math.atan2(math.sin(angle), math.cos(angle))
 
 
-def distance_between(a, b):
+def distance_between(a: tuple[float, float], b: tuple[float, float]) -> float:
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
 
-def normalize_vector(x, y):
+def normalize_vector(x: float, y: float) -> tuple[float, float]:
     length = math.hypot(x, y)
     if length < 1e-6:
         return 1.0, 0.0
     return x / length, y / length
 
 
-def interpolate_angle(start, end, ratio):
+def interpolate_angle(start: float, end: float, ratio: float) -> float:
     ratio = max(0.0, min(1.0, ratio))
     return normalize_angle(start + normalize_angle(end - start) * ratio)
 
 
-def strip_debug_flags(args):
+def strip_debug_flags(args: list[str]) -> tuple[bool, list[str]]:
     debug = False
     clean_args = []
     for arg in args:
@@ -54,31 +52,31 @@ def strip_debug_flags(args):
 
 @dataclass
 class CourseMark:
+    """A course mark, optionally refined by LiDAR detection."""
+
     name: str
     x: float
     y: float
     rounding_side: str = 'starboard'
-    detected_x: float = None
-    detected_y: float = None
+    detected_x: float | None = None
+    detected_y: float | None = None
     has_detection: bool = False
 
     @property
-    def position(self):
+    def position(self) -> tuple[float, float]:
         return self.x, self.y
 
 
-# =========================================================
-# AUTONOMY NODE
-# =========================================================
-
 class SailboatAutonomy(Node):
+    """Compute rudder and baum commands for mark rounding and tacking."""
+
     MODE_SAIL_TO_MARK = 'SAIL_TO_MARK'
     MODE_OVERSHOOT_MARK = 'OVERSHOOT_MARK'
     MODE_EXIT_TURN = 'EXIT_TURN'
     LEG_DIRECT = 'DIRECT'
     LEG_TACKING = 'TACKING'
 
-    def __init__(self, debug_default=False):
+    def __init__(self, debug_default: bool = False) -> None:
         super().__init__('sailboat_autonomy')
 
         self.declare_parameter('debug', debug_default)
@@ -86,15 +84,13 @@ class SailboatAutonomy(Node):
         self.debug_enabled = self.get_parameter('debug').value
         self.verbose_enabled = self.get_parameter('verbose').value
 
-        # STATE
-        self.x = None
-        self.y = None
+        self.x: float | None = None
+        self.y: float | None = None
         self.heading = 0.0
         self.apparent_wind_dir = 0.0
         self.has_apparent_wind = False
-        self.detected_buoy = None
+        self.detected_buoy: tuple[float, float] | None = None
 
-        # COURSE FALLBACK
         self.declare_parameter('mark_0_x', -510.0)
         self.declare_parameter('mark_0_y', 180.0)
         self.declare_parameter('mark_0_rounding_side', 'starboard')
@@ -201,7 +197,6 @@ class SailboatAutonomy(Node):
         if self.verbose_enabled:
             self.log_course()
 
-        # SUBSCRIBERS
         self.create_subscription(
             NavSatFix,
             '/boat/gps/data',
@@ -233,7 +228,6 @@ class SailboatAutonomy(Node):
             10
         )
 
-        # PUBLISHERS
         self.mark_rounded_pub = self.create_publisher(
             Bool,
             '/course/mark_rounded',
@@ -255,14 +249,9 @@ class SailboatAutonomy(Node):
             10
         )
 
-        # TIMER
         self.timer = self.create_timer(0.1, self.update)
 
-    # =====================================================
-    # CALLBACKS
-    # =====================================================
-
-    def gps_callback(self, msg):
+    def gps_callback(self, msg: NavSatFix) -> None:
         # Earth radius
         R = 6378137.0
         # delta coordinates
@@ -282,17 +271,17 @@ class SailboatAutonomy(Node):
         self.x = self.world_origin_x + local_x
         self.y = self.world_origin_y + local_y
 
-    def imu_callback(self, msg):
+    def imu_callback(self, msg: Imu) -> None:
         q = msg.orientation
         siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
         cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         self.heading = math.atan2(siny_cosp, cosy_cosp)
 
-    def wind_callback(self, msg):
+    def wind_callback(self, msg: Float32) -> None:
         self.apparent_wind_dir = math.radians(msg.data)
         self.has_apparent_wind = True
 
-    def buoy_callback(self, msg):
+    def buoy_callback(self, msg: PointStamped) -> None:
         if self.x is None:
             return
 
@@ -311,7 +300,7 @@ class SailboatAutonomy(Node):
         self.detected_buoy = (world_x, world_y)
         self.refine_nearby_mark(world_x, world_y)
 
-    def course_callback(self, msg):
+    def course_callback(self, msg: Float64MultiArray) -> None:
         if len(msg.data) < 8:
             return
 
@@ -356,14 +345,10 @@ class SailboatAutonomy(Node):
 
         self.course_finished = msg.data[7] > 0.5
 
-    # =====================================================
-    # MAIN LOOP
-    # =====================================================
-
-    def get_position(self):
+    def get_position(self) -> tuple[float, float]:
         return self.x, self.y
 
-    def log_course(self):
+    def log_course(self) -> None:
         for index, mark in enumerate(self.marks):
             self.get_logger().info(
                 'Course mark %d: %s at (%.2f, %.2f), rounding=%s' %
@@ -524,7 +509,6 @@ class SailboatAutonomy(Node):
         )
 
     def start_rounding(self):
-        position = self.get_position()
         mark = self.active_mark()
         next_mark = self.next_mark()
         mark_x, mark_y = self.mark_position(mark)
@@ -843,7 +827,6 @@ class SailboatAutonomy(Node):
         sail_angle = max(math.radians(0), min(math.radians(90), sail_angle))
         return sail_angle
 
-
     def update(self):
         if self.x is None:
             return
@@ -939,20 +922,20 @@ class SailboatAutonomy(Node):
         if not self.debug_enabled:
             return
 
-        print("\n====================")
-        print("MODE      :", self.mode)
-        print("LEG MODE  :", self.leg_mode)
-        print("TACK SIDE :", round(self.tack_side, 1))
-        print("TARGET    :", target_kind)
-        print("MARK      :", self.active_mark().name)
-        print("BOAT XY   :", round(self.x, 2), round(self.y, 2))
+        print('\n====================')
+        print('MODE      :', self.mode)
+        print('LEG MODE  :', self.leg_mode)
+        print('TACK SIDE :', round(self.tack_side, 1))
+        print('TARGET    :', target_kind)
+        print('MARK      :', self.active_mark().name)
+        print('BOAT XY   :', round(self.x, 2), round(self.y, 2))
         print(
-            "MARK XY   :",
+            'MARK XY   :',
             round(self.mark_position(self.active_mark())[0], 2),
             round(self.mark_position(self.active_mark())[1], 2)
         )
         print(
-            "MARK DIST :",
+            'MARK DIST :',
             round(
                 distance_between(
                     self.get_position(),
@@ -962,24 +945,20 @@ class SailboatAutonomy(Node):
             )
         )
         print(
-            "ROUND SIDE:",
+            'ROUND SIDE:',
             self.is_on_rounding_side(
                 self.get_position(),
                 self.active_mark(),
                 self.next_mark()
             )
         )
-        print("DISTANCE  :", round(distance, 2))
-        print("HEADING ERR:", round(math.degrees(heading_error), 2))
-        print("RUDDER:", round(rudder, 2))
-        print("SAIL:", round(math.degrees(sail_angle), 2))
+        print('DISTANCE  :', round(distance, 2))
+        print('HEADING ERR:', round(math.degrees(heading_error), 2))
+        print('RUDDER:', round(rudder, 2))
+        print('SAIL:', round(math.degrees(sail_angle), 2))
 
 
-# =========================================================
-# MAIN
-# =========================================================
-
-def main(args=None):
+def main(args=None) -> None:
     raw_args = sys.argv[1:] if args is None else args
     debug_enabled, clean_args = strip_debug_flags(raw_args)
     rclpy.init(args=clean_args)

@@ -1,3 +1,5 @@
+"""Launch autonomy, course management, perception, and dashboard nodes."""
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
@@ -6,7 +8,7 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
 
-def generate_launch_description():
+def generate_launch_description() -> LaunchDescription:
     use_buoy_detector = LaunchConfiguration('use_buoy_detector')
     use_dashboard = LaunchConfiguration('use_dashboard')
     debug = LaunchConfiguration('debug')

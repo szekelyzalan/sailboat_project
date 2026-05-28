@@ -15,8 +15,11 @@ setup(
     zip_safe=True,
     maintainer='szekelyzalan',
     maintainer_email='szekelyzalan03@gmail.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description=(
+        'Simplified sailboat dynamics node for driving the Gazebo simulation '
+        'from wind, baum, and rudder commands.'
+    ),
+    license='Apache-2.0',
     extras_require={
         'test': [
             'pytest',

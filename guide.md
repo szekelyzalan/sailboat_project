@@ -192,7 +192,7 @@ This node provides:
 
 # Terminal 3 — Send Actuator Commands
 
-Boom / sail angle:
+Baum / sail angle:
 
 ```bash
 ros2 topic pub \
@@ -231,7 +231,7 @@ Gazebo JointPositionController
 
 for:
 
-* boom_joint
+* baum_joint
 * rudder_joint
 
 ---
@@ -258,7 +258,7 @@ This architecture is intentionally simple and stable.
 
 ## ROS Topics
 
-Boom position command:
+Baum position command:
 
 ```text
 /cmd_baum_pos
@@ -280,7 +280,7 @@ Joint states:
 
 ## Gazebo Topics
 
-Boom actuator:
+Baum actuator:
 
 ```text
 /baum_pos
@@ -373,7 +373,7 @@ Merge back into main after testing.
 # Good Commit Examples
 
 ```text
-Add boom position controller
+Add baum position controller
 Implement rudder joint hierarchy
 Add buoyancy plugin
 Refactor actuator architecture

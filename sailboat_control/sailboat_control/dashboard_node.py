@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
+"""Serve a local web dashboard populated from sailboat ROS topics."""
+
+from http.server import BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer
 import json
 import math
 import os
 import threading
 import time
-from http.server import BaseHTTPRequestHandler
-from http.server import ThreadingHTTPServer
 
-import rclpy
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import PointStamped
+import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import LaserScan
@@ -21,14 +23,21 @@ from std_msgs.msg import Float64MultiArray
 from std_msgs.msg import String
 
 
-def yaw_from_imu(msg):
+def yaw_from_imu(msg: Imu) -> float:
     q = msg.orientation
     siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
     cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
     return math.atan2(siny_cosp, cosy_cosp)
 
 
-def gps_to_world(latitude, longitude, origin_lat, origin_lon, origin_x, origin_y):
+def gps_to_world(
+    latitude: float,
+    longitude: float,
+    origin_lat: float,
+    origin_lon: float,
+    origin_x: float,
+    origin_y: float
+) -> tuple[float, float]:
     radius = 6378137.0
     dlat = math.radians(latitude - origin_lat)
     dlon = math.radians(longitude - origin_lon)
@@ -38,13 +47,17 @@ def gps_to_world(latitude, longitude, origin_lat, origin_lon, origin_x, origin_y
 
 
 class DashboardServer(ThreadingHTTPServer):
-    def __init__(self, address, handler, node):
+    """HTTP server with a reference to the ROS dashboard node."""
+
+    def __init__(self, address, handler, node) -> None:
         super().__init__(address, handler)
         self.node = node
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    """Serve static dashboard assets and the live JSON state endpoint."""
+
+    def do_GET(self) -> None:
         if self.path == '/' or self.path == '/index.html':
             self.serve_file('index.html', 'text/html; charset=utf-8')
             return
@@ -61,7 +74,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         self.send_error(404)
 
-    def serve_file(self, filename, content_type):
+    def serve_file(self, filename: str, content_type: str) -> None:
         path = os.path.join(self.server.node.dashboard_dir, filename)
         with open(path, 'rb') as file:
             payload = file.read()
@@ -72,12 +85,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def log_message(self, _format, *_args):
+    def log_message(self, _format, *_args) -> None:
         return
 
 
 class SailboatDashboard(Node):
-    def __init__(self):
+    """Collect simulation state and expose it over a local HTTP dashboard."""
+
+    def __init__(self) -> None:
         super().__init__('sailboat_dashboard')
 
         self.declare_parameter('host', '127.0.0.1')
@@ -123,19 +138,55 @@ class SailboatDashboard(Node):
             'lidar_points': [],
         }
 
-        self.create_subscription(NavSatFix, '/boat/gps/data', self.gps_callback, 10)
+        self.create_subscription(
+            NavSatFix, '/boat/gps/data', self.gps_callback, 10
+        )
         self.create_subscription(Imu, '/boat/imu/data', self.imu_callback, 10)
-        self.create_subscription(Float32, '/vrx/debug/wind/direction', self.wind_dir_callback, 10)
-        self.create_subscription(Float32, '/vrx/debug/wind/speed', self.wind_speed_callback, 10)
-        self.create_subscription(Float32, '/sensor/apparent_wind/direction', self.apparent_wind_callback, 10)
-        self.create_subscription(Float64, '/rudder_pos', self.rudder_callback, 10)
-        self.create_subscription(Float64, '/baum_pos', self.sail_callback, 10)
-        self.create_subscription(Float64, '/actual_baum_pos', self.actual_sail_callback, 10)
-        self.create_subscription(Float64MultiArray, '/course/active_leg', self.course_callback, 10)
-        self.create_subscription(Float64MultiArray, '/course/marks', self.course_marks_callback, 10)
-        self.create_subscription(String, '/autonomy/status', self.autonomy_callback, 10)
-        self.create_subscription(PointStamped, '/perception/buoy/relative_position', self.buoy_callback, 10)
-        self.create_subscription(LaserScan, '/boat/lidar/scan', self.lidar_callback, 10)
+        self.create_subscription(
+            Float32,
+            '/vrx/debug/wind/direction',
+            self.wind_dir_callback,
+            10
+        )
+        self.create_subscription(
+            Float32, '/vrx/debug/wind/speed', self.wind_speed_callback, 10
+        )
+        self.create_subscription(
+            Float32,
+            '/sensor/apparent_wind/direction',
+            self.apparent_wind_callback,
+            10
+        )
+        self.create_subscription(
+            Float64, '/rudder_pos', self.rudder_callback, 10
+        )
+        self.create_subscription(
+            Float64, '/baum_pos', self.sail_callback, 10
+        )
+        self.create_subscription(
+            Float64, '/actual_baum_pos', self.actual_sail_callback, 10
+        )
+        self.create_subscription(
+            Float64MultiArray,
+            '/course/active_leg',
+            self.course_callback,
+            10
+        )
+        self.create_subscription(
+            Float64MultiArray, '/course/marks', self.course_marks_callback, 10
+        )
+        self.create_subscription(
+            String, '/autonomy/status', self.autonomy_callback, 10
+        )
+        self.create_subscription(
+            PointStamped,
+            '/perception/buoy/relative_position',
+            self.buoy_callback,
+            10
+        )
+        self.create_subscription(
+            LaserScan, '/boat/lidar/scan', self.lidar_callback, 10
+        )
 
         self.server = DashboardServer((self.host, self.port), DashboardHandler, self)
         self.server_thread = threading.Thread(

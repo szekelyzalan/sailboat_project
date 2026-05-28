@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
+"""Simplified wind-driven dynamics for the Gazebo sailboat model."""
+
 import math
 import sys
-from gz.transport13 import Node as GzNode
-from gz.msgs10.pose_pb2 import Pose
-from gz.msgs10.boolean_pb2 import Boolean
+
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Vector3
+from gz.msgs10.boolean_pb2 import Boolean
+from gz.msgs10.pose_pb2 import Pose
+from gz.transport13 import Node as GzNode
 import rclpy
 from rclpy.node import Node
 from rosgraph_msgs.msg import Clock
@@ -14,58 +17,52 @@ from std_msgs.msg import Float32
 from std_msgs.msg import Float64
 
 
-# =========================================================
-# SIMPLE VECTOR2
-# =========================================================
-
 class Vector2:
-    def __init__(self, x=0.0, y=0.0):
+    """Minimal 2D vector helper for the planar dynamics model."""
+
+    def __init__(self, x: float = 0.0, y: float = 0.0) -> None:
         self.x = x
         self.y = y
 
-    def magnitude(self):
+    def magnitude(self) -> float:
         return math.hypot(self.x, self.y)
 
-    def direction(self):
+    def direction(self) -> float:
         return math.atan2(self.y, self.x)
 
-    def dot(self, other):
+    def dot(self, other: 'Vector2') -> float:
         return (
             self.x * other.x +
             self.y * other.y
         )
 
-    def __add__(self, other):
+    def __add__(self, other: 'Vector2') -> 'Vector2':
         return Vector2(
             self.x + other.x,
             self.y + other.y
         )
 
-    def __sub__(self, other):
+    def __sub__(self, other: 'Vector2') -> 'Vector2':
         return Vector2(
             self.x - other.x,
             self.y - other.y
         )
 
-    def __mul__(self, scalar):
+    def __mul__(self, scalar: float) -> 'Vector2':
         return Vector2(
             self.x * scalar,
             self.y * scalar
         )
 
 
-# =========================================================
-# UTILS
-# =========================================================
-
-def normalize_angle(angle):
+def normalize_angle(angle: float) -> float:
     return math.atan2(
         math.sin(angle),
         math.cos(angle)
     )
 
 
-def strip_debug_flags(args):
+def strip_debug_flags(args: list[str]) -> tuple[bool, list[str]]:
     debug = False
     clean_args = []
     for arg in args:
@@ -76,16 +73,14 @@ def strip_debug_flags(args):
     return debug, clean_args
 
 
-def time_to_sec(time_msg):
+def time_to_sec(time_msg: Time) -> float:
     return time_msg.sec + time_msg.nanosec * 1e-9
 
 
-# =========================================================
-# MAIN NODE
-# =========================================================
-
 class SailboatGamePhysics(Node):
-    def __init__(self, debug_default=False):
+    """Advance the boat state when Gazebo simulation time is running."""
+
+    def __init__(self, debug_default: bool = False) -> None:
         super().__init__('sailboat_game_physics')
 
         self.declare_parameter('debug', debug_default)
@@ -93,36 +88,28 @@ class SailboatGamePhysics(Node):
         self.debug_enabled = self.get_parameter('debug').value
         self.verbose_enabled = self.get_parameter('verbose').value
 
-        # POSITION
         self.x = -520.0
         self.y = 191.0
         self.z = 0.0
         self.yaw = 0.0
 
-        # VELOCITY
         self.velocity = Vector2(0.0, 0.0)
         self.yaw_rate = 0.0
 
-        # WIND
         self.wind_speed = 4.0
         self.wind_direction = math.radians(40)
 
-        # CONTROLS
-        # actual baum position
         self.sail_angle = 0.0
         self.sail_sign = 1.0
 
-        # rope length / max baum angle
         self.sheet_length = math.radians(80)
         self.rudder_angle = 0.0
 
-        # PARAMETERS
         self.dt = 0.05
         self.boat_mass = 6.44
-        self.latest_clock = None
-        self.last_physics_clock = None
+        self.latest_clock: Time | None = None
+        self.last_physics_clock: Time | None = None
 
-        # SUBSCRIBERS
         self.create_subscription(
             Clock,
             '/clock',
@@ -154,7 +141,6 @@ class SailboatGamePhysics(Node):
             10
         )
 
-        # PUBLISHERS
         self.actual_sail_pub = self.create_publisher(
             Float64,
             '/actual_baum_pos',
@@ -166,10 +152,8 @@ class SailboatGamePhysics(Node):
             10
         )
 
-        # GAZEBO TRANSPORT
         self.gz_node = GzNode()
 
-        # TIMER
         self.timer = self.create_timer(
             self.dt,
             self.update_physics
@@ -177,27 +161,22 @@ class SailboatGamePhysics(Node):
         if self.verbose_enabled:
             self.get_logger().info('Sailboat Game Physics Started')
 
-    # =====================================================
-    # CALLBACKS
-    # =====================================================
-
-    def clock_callback(self, msg):
+    def clock_callback(self, msg: Clock) -> None:
         self.latest_clock = msg.clock
 
-    def wind_speed_callback(self, msg):
+    def wind_speed_callback(self, msg: Float32) -> None:
         self.wind_speed = msg.data
 
-    def wind_direction_callback(self, msg):
+    def wind_direction_callback(self, msg: Float32) -> None:
         self.wind_direction = math.radians(msg.data)
 
-    def sail_callback(self, msg):
-        # rope length only
+    def sail_callback(self, msg: Float64) -> None:
         self.sheet_length = abs(msg.data)
 
-    def rudder_callback(self, msg):
+    def rudder_callback(self, msg: Float64) -> None:
         self.rudder_angle = msg.data
 
-    def simulation_is_running(self):
+    def simulation_is_running(self) -> bool:
         if self.latest_clock is None:
             return False
 
@@ -216,11 +195,11 @@ class SailboatGamePhysics(Node):
         self.last_physics_clock.nanosec = self.latest_clock.nanosec
         return True
 
-    def debug_print(self, *args):
+    def debug_print(self, *args) -> None:
         if self.debug_enabled:
             print(*args)
 
-    def calc_efficiency(self, relative_wind):
+    def calc_efficiency(self, relative_wind: float) -> float:
         # FORWARD VECTOR
         fx = 1.0
         fy = 0.0
@@ -262,17 +241,12 @@ class SailboatGamePhysics(Node):
             min(1.0, efficiency)
         ) if angle <= math.pi/2 else 0.0
 
-        self.debug_print("ANGLE TO NORMAL :", round(math.degrees(angle), 2))
-        self.debug_print("TRIM EFFICIENCY :", round(efficiency, 3))
+        self.debug_print('ANGLE TO NORMAL :', round(math.degrees(angle), 2))
+        self.debug_print('TRIM EFFICIENCY :', round(efficiency, 3))
 
         return efficiency
 
-
-    # =====================================================
-    # MAIN PHYSICS
-    # =====================================================
-
-    def update_physics(self):
+    def update_physics(self) -> None:
         if not self.simulation_is_running():
             return
 
@@ -293,7 +267,6 @@ class SailboatGamePhysics(Node):
         relative_wind = normalize_angle(apparent_dir - self.yaw)
         relative_deg = math.degrees(relative_wind)
 
-        # BAUM SIDE SELECTION
         # dead downwind singularity: keep previous side
         deadzone = math.radians(15)
         if abs(relative_wind) > deadzone:
@@ -302,7 +275,6 @@ class SailboatGamePhysics(Node):
             else:
                 self.sail_sign = 1.0
 
-        # BAUM TARGET
         target_baum = self.sail_sign * self.sheet_length
         # smooth motion
         sail_response = 4.0
@@ -423,52 +395,52 @@ class SailboatGamePhysics(Node):
         qz = math.sin(self.yaw / 2.0)
 
         if self.debug_enabled:
-            print("\n========================")
+            print('\n========================')
             print(
-                "TRUE WIND DIR :",
+                'TRUE WIND DIR :',
                 round(math.degrees(
                     self.wind_direction
                 ), 2)
             )
             print(
-                "BOAT HEADING  :",
+                'BOAT HEADING  :',
                 round(math.degrees(
                     self.yaw
                 ), 2)
             )
             print(
-                "APP WIND DIR  :",
+                'APP WIND DIR  :',
                 round(math.degrees(
                     apparent_dir
                 ), 2)
             )
             print(
-                "REL WIND      :",
+                'REL WIND      :',
                 round(relative_deg, 2)
             )
             print(
-                "boat speed    :",
+                'boat speed    :',
                 round(
                     self.velocity.magnitude(),
                     3
                 )
             )
             print(
-                "wind eff      :",
+                'wind eff      :',
                 round(
                     wind_efficiency,
                     3
                 )
             )
             print(
-                "sail force    :",
+                'sail force    :',
                 round(
                     thrust,
                     3
                 )
             )
             print(
-                "baum angle    :",
+                'baum angle    :',
                 round(
                     math.degrees(
                         self.sail_angle
@@ -477,7 +449,7 @@ class SailboatGamePhysics(Node):
                 )
             )
             print(
-                "sheet length  :",
+                'sheet length  :',
                 round(
                     math.degrees(
                         self.sheet_length
@@ -485,7 +457,7 @@ class SailboatGamePhysics(Node):
                     2
                 )
             )
-            print("========================")
+            print('========================')
 
         # VISUAL baum UPDATE
         actual_msg = Float64()
@@ -529,10 +501,7 @@ class SailboatGamePhysics(Node):
             )
 
 
-# =========================================================
-# MAIN
-# =========================================================
-def main(args=None):
+def main(args=None) -> None:
     raw_args = sys.argv[1:] if args is None else args
     debug_enabled, clean_args = strip_debug_flags(raw_args)
     rclpy.init(args=clean_args)

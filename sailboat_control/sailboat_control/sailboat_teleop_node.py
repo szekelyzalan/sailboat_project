@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 
+"""Keyboard teleoperation for baum sheet length and rudder angle."""
+
+import math
 import sys
 import termios
-import tty
 import threading
-import math
+import tty
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float64
 
 
 class SailboatTeleop(Node):
-    def __init__(self):
+    """Publish manual baum and rudder commands from keyboard input."""
+
+    def __init__(self) -> None:
         super().__init__('sailboat_teleop')
         self.sheet_length = math.radians(80)
         self.rudder_angle = 0.0
@@ -37,7 +42,7 @@ class SailboatTeleop(Node):
         )
         self.print_help()
 
-    def print_help(self):
+    def print_help(self) -> None:
         print('')
         print('==============================')
         print(' SAILBOAT TELEOP')
@@ -49,7 +54,7 @@ class SailboatTeleop(Node):
         print('==============================')
         print('')
 
-    def get_key(self):
+    def get_key(self) -> str:
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
@@ -63,7 +68,7 @@ class SailboatTeleop(Node):
             )
         return key
 
-    def keyboard_loop(self):
+    def keyboard_loop(self) -> None:
         while self.running:
             key = self.get_key()
             if key == 'a':
@@ -96,7 +101,7 @@ class SailboatTeleop(Node):
                 flush=True
             )
 
-    def publish_commands(self):
+    def publish_commands(self) -> None:
         sail_msg = Float64()
         sail_msg.data = self.sheet_length
         rudder_msg = Float64()
@@ -105,7 +110,7 @@ class SailboatTeleop(Node):
         self.rudder_pub.publish(rudder_msg)
 
 
-def main(args=None):
+def main(args=None) -> None:
     rclpy.init(args=args)
     node = SailboatTeleop()
     rclpy.spin(node)

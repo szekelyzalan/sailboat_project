@@ -1,11 +1,10 @@
 <?xml version="1.0"?>
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>sailboat_physics</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Simplified sailboat dynamics node for driving the Gazebo simulation from wind, baum, and rudder commands.</description>
   <maintainer email="szekelyzalan03@gmail.com">szekelyzalan</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>

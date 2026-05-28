@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
-import sys
+"""Publish the active course leg and track completed mark roundings."""
+
 from dataclasses import dataclass
+import sys
 
 import rclpy
 from rclpy.node import Node
@@ -9,7 +11,7 @@ from std_msgs.msg import Bool
 from std_msgs.msg import Float64MultiArray
 
 
-def strip_verbose_flags(args):
+def strip_verbose_flags(args: list[str]) -> tuple[bool, list[str]]:
     verbose = False
     clean_args = []
     for arg in args:
@@ -22,6 +24,8 @@ def strip_verbose_flags(args):
 
 @dataclass
 class CourseMark:
+    """A mark in the sailing course."""
+
     name: str
     x: float
     y: float
@@ -29,7 +33,9 @@ class CourseMark:
 
 
 class CourseManager(Node):
-    def __init__(self, verbose_default=False):
+    """Manage mark order, lap counting, and active-leg publication."""
+
+    def __init__(self, verbose_default: bool = False) -> None:
         super().__init__('course_manager')
 
         self.declare_parameter('verbose', verbose_default)
@@ -65,7 +71,7 @@ class CourseManager(Node):
         if self.verbose_enabled:
             self.log_course()
 
-    def load_course(self):
+    def load_course(self) -> list[CourseMark]:
         defaults = [
             ('red', -510.0, 180.0, 'starboard'),
             ('black', -490.0, 180.0, 'starboard'),
@@ -89,10 +95,10 @@ class CourseManager(Node):
             )
         return marks
 
-    def rounding_side_code(self, side):
+    def rounding_side_code(self, side: str) -> float:
         return 1.0 if side == 'port' else -1.0
 
-    def mark_rounded_callback(self, msg):
+    def mark_rounded_callback(self, msg: Bool) -> None:
         if not msg.data or self.finished:
             return
 
@@ -112,7 +118,7 @@ class CourseManager(Node):
             (previous_mark, self.current_mark, self.completed_laps)
         )
 
-    def publish_active_leg(self):
+    def publish_active_leg(self) -> None:
         current = self.marks[self.current_mark]
         next_index = (self.current_mark + 1) % len(self.marks)
         next_mark = self.marks[next_index]
@@ -131,7 +137,7 @@ class CourseManager(Node):
         self.leg_pub.publish(msg)
         self.publish_course_marks()
 
-    def publish_course_marks(self):
+    def publish_course_marks(self) -> None:
         msg = Float64MultiArray()
         msg.data = [
             float(len(self.marks)),
@@ -147,7 +153,7 @@ class CourseManager(Node):
             ])
         self.marks_pub.publish(msg)
 
-    def log_course(self):
+    def log_course(self) -> None:
         for index, mark in enumerate(self.marks):
             self.get_logger().info(
                 'Course mark %d: %s at (%.2f, %.2f), rounding=%s' %
@@ -159,7 +165,7 @@ class CourseManager(Node):
         )
 
 
-def main(args=None):
+def main(args=None) -> None:
     raw_args = sys.argv[1:] if args is None else args
     verbose_enabled, clean_args = strip_verbose_flags(raw_args)
     rclpy.init(args=clean_args)

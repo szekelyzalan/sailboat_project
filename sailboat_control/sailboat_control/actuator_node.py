@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
+"""Forward high-level actuator commands to Gazebo actuator topics."""
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float64
 
 
 class SailboatActuatorNode(Node):
-    def __init__(self):
+    """Pass baum and rudder commands through to the simulator interfaces."""
+
+    def __init__(self) -> None:
         super().__init__('sailboat_actuator_node')
         self.baum_pub = self.create_publisher(
             Float64,
@@ -32,14 +36,14 @@ class SailboatActuatorNode(Node):
         )
         self.get_logger().info('Actuator passthrough node started.')
 
-    def baum_callback(self, msg):
+    def baum_callback(self, msg: Float64) -> None:
         self.baum_pub.publish(msg)
 
-    def rudder_callback(self, msg):
+    def rudder_callback(self, msg: Float64) -> None:
         self.rudder_pub.publish(msg)
 
 
-def main(args=None):
+def main(args=None) -> None:
     rclpy.init(args=args)
     node = SailboatActuatorNode()
     rclpy.spin(node)

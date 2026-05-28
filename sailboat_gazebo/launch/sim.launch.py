@@ -1,13 +1,20 @@
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, SetEnvironmentVariable
+"""Launch Gazebo, the ROS-Gazebo bridge, and sailboat physics."""
+
+import os
+
 from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    SetEnvironmentVariable,
+)
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-import os
 
 
-def generate_launch_description():
+def generate_launch_description() -> LaunchDescription:
     debug = LaunchConfiguration('debug')
     verbose = LaunchConfiguration('verbose')
     gz_verbosity = LaunchConfiguration('gz_verbosity')
@@ -38,7 +45,6 @@ def generate_launch_description():
         value=combined_resources
     )
 
-    # GAZEBO SIMULATION
     gazebo = ExecuteProcess(
         cmd=[
             'gz',
@@ -49,7 +55,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # ROS <-> Gazebo bridge
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
