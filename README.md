@@ -4,7 +4,7 @@ Autonomous sailboat simulation stack built with ROS 2 Jazzy, Gazebo Harmonic, an
 
 The main branch is intended to be stable and easy to reproduce. Experimental work on a more realistic Gazebo-native wind-force system is available on the [`feature/wind-system`](#experimental-wind-system-branch) branch.
 
-![Demo video:](https://www.youtube.com/watch?v=bUFS_UnPm1U) 
+[![Watch the Demo Video](https://img.youtube.com/vi/bUFS_UnPm1U/0.jpg)](https://www.youtube.com/watch?v=bUFS_UnPm1U)
 ![Gazebo simulation screenshot](docs/images/gazebo-simulation.png)
 ![Dashboard screenshot](docs/images/dashboard.png)
 
