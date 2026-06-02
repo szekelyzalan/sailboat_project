@@ -4,8 +4,7 @@ Autonomous sailboat simulation stack built with ROS 2 Jazzy, Gazebo Harmonic, an
 
 The main branch is intended to be stable and easy to reproduce. Experimental work on a more realistic Gazebo-native wind-force system is available on the [`feature/wind-system`](#experimental-wind-system-branch) branch.
 
-> Demo video: paste the final YouTube link here after upload.
-
+![Demo video:](https://www.youtube.com/watch?v=bUFS_UnPm1U) 
 ![Gazebo simulation screenshot](docs/images/gazebo-simulation.png)
 ![Dashboard screenshot](docs/images/dashboard.png)
 
@@ -40,21 +39,6 @@ The current `main` branch uses:
 - ROS 2 control and autonomy nodes for course following, tacking, mark rounding, perception, and visualization.
 
 This makes the project useful as a lightweight development bed for sailboat autonomy, ROS-Gazebo integration, and marine robotics experiments.
-
-## Demo and Screenshots
-
-- YouTube demo: paste the final YouTube URL here.
-- Gazebo screenshot: `docs/images/gazebo-simulation.png`
-- Dashboard screenshot: `docs/images/dashboard.png`
-- Development screenshot: `docs/images/development-workflow.png`
-
-Suggested demo flow:
-
-1. Launch the Gazebo/VRX world.
-2. Start simulation time in Gazebo.
-3. Start autonomy and the dashboard.
-4. Show the boat moving around the buoy course.
-5. Show the dashboard with boat track, course marks, wind, rudder, sail, and autonomy state.
 
 ## Features
 
