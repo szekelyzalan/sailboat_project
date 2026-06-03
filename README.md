@@ -11,7 +11,6 @@ The main branch is intended to be stable and easy to reproduce. Experimental wor
 ## Table of Contents
 
 - [Overview](#overview)
-- [Demo and Screenshots](#demo-and-screenshots)
 - [Features](#features)
 - [VRX Integration](#vrx-integration)
 - [Architecture](#architecture)
